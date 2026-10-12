@@ -1,0 +1,471 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#173d2c">
+<title>Lo de Nico | Tienda online</title>
+<style>
+:root{--verde:#173d2c;--verde2:#24563e;--crema:#fbf8ef;--lima:#d9ed8b;--borde:#e2e6db}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:var(--crema);color:#203127}
+header{background:var(--verde);color:white;padding:18px 5%;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:25px}
+header p{margin:5px 0 0;color:#e1eadf}
+button,a.btn{border:0;border-radius:10px;padding:12px 16px;font-weight:bold;cursor:pointer;text-decoration:none;display:inline-block}
+.btn{background:var(--lima);color:var(--verde)}
+main{max-width:1100px;margin:auto;padding:22px 16px}
+.hero{background:var(--verde);color:white;border-radius:22px;padding:30px 24px;margin-bottom:28px}
+.hero h2{font-size:clamp(30px,6vw,48px);margin:8px 0}
+.hero p{line-height:1.5;max-width:560px}
+h2,h3{color:var(--verde)}
+.hero h2{color:white}
+input,select,textarea{width:100%;padding:12px;border:1px solid var(--borde);border-radius:10px;font:inherit;margin:5px 0 12px;background:white}
+.categorias{display:flex;gap:8px;flex-wrap:wrap;margin:15px 0}
+.categoria{background:white;border:1px solid var(--borde);color:var(--verde)}
+.categoria.activa{background:var(--verde);color:white}
+.productos{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:15px}
+.producto,.panel{background:white;border:1px solid var(--borde);border-radius:16px;padding:15px}
+.foto{width:100%;height:145px;object-fit:cover;background:#edf0e6;border-radius:11px;display:grid;place-items:center;font-size:48px}
+.producto h3{margin-bottom:5px}
+.precio{font-size:20px;font-weight:bold;color:var(--verde);margin:12px 0}
+.producto button,.principal{width:100%;background:var(--verde);color:white}
+.seccion{margin:30px 0}
+.doscolumnas{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.lineacarrito{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--borde);padding:10px 0}
+.mensaje{padding:12px;background:#edf4df;border-radius:10px;margin-top:12px;overflow-wrap:anywhere}
+.oculto{display:none!important}
+footer{background:var(--verde);color:white;padding:25px 5%;margin-top:35px}
+footer a{color:var(--lima)}
+@media(max-width:650px){.doscolumnas{grid-template-columns:1fr}header h1{font-size:22px}.hero{padding:23px 18px}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>🥬 Lo de Nico</h1>
+    <p>Tu granja de confianza</p>
+  </div>
+  <button class="btn" onclick="document.getElementById('pedido').scrollIntoView({behavior:'smooth'})">🛒 Mi pedido (<span id="cantidad">0</span>)</button>
+</header>
+
+<main>
+<section class="hero">
+  <p>POLLO · CARNE · CERDO · CONGELADOS</p>
+  <h2>Lo que necesitás, a tu manera.</h2>
+  <p>Elegí tus productos, armá tu carrito y enviá tu pedido para coordinar la entrega.</p>
+  <a class="btn" href="#productos">Ver productos</a>
+</section>
+
+<section id="productos" class="seccion">
+  <h2>Nuestros productos</h2>
+  <input id="buscar" placeholder="🔎 Buscar productos..." oninput="mostrarProductos()">
+  <div id="categorias" class="categorias">
+    <button class="categoria activa" onclick="filtrar('Todos',this)">Todos</button>
+    <button class="categoria" onclick="filtrar('Pollo',this)">🍗 Pollo</button>
+    <button class="categoria" onclick="filtrar('Carne',this)">🥩 Carne</button>
+    <button class="categoria" onclick="filtrar('Cerdo',this)">🐖 Cerdo</button>
+    <button class="categoria" onclick="filtrar('Congelados',this)">❄️ Congelados</button>
+  </div>
+  <div id="listaProductos" class="productos">
+    <p>El catálogo se mostrará aquí cuando se conecte la base de datos.</p>
+  </div>
+</section>
+
+<section id="pedido" class="seccion">
+  <h2>Finalizar pedido</h2>
+  <div class="doscolumnas">
+    <form id="formPedido" class="panel">
+      <h3>Tus datos</h3>
+      <label>Nombre y apellido *</label>
+      <input id="nombre" required maxlength="100" placeholder="Tu nombre">
+      <label>Teléfono / WhatsApp *</label>
+      <input id="telefono" required maxlength="40" placeholder="Tu teléfono">
+      <label>Correo electrónico (opcional)</label>
+      <input id="correo" type="email" maxlength="160" placeholder="tu@email.com">
+      <label>Entrega *</label>
+      <select id="entrega" onchange="actualizarEntrega()">
+        <option value="delivery">Envío a domicilio</option>
+        <option value="pickup">Retiro</option>
+      </select>
+      <div id="direccionGrupo">
+        <label>Dirección *</label>
+        <input id="direccion" placeholder="Calle, número y localidad">
+      </div>
+      <label>Indicaciones adicionales</label>
+      <textarea id="notas" rows="2" placeholder="Entre calles u otras indicaciones"></textarea>
+      <label>Forma de pago *</label>
+      <select id="pago">
+        <option value="cash">Efectivo</option>
+        <option value="transfer">Transferencia bancaria</option>
+      </select>
+      <button class="principal" type="submit">Enviar pedido</button>
+      <div id="resultado" aria-live="polite"></div>
+    </form>
+
+    <div class="panel">
+      <h3>🛒 Tu carrito</h3>
+      <div id="carrito">Todavía no agregaste productos.</div>
+      <hr>
+      <h3>Subtotal: <span id="subtotal">$ 0</span></h3>
+      <p>El costo de envío y la disponibilidad se confirmarán al preparar tu pedido.</p>
+      <button type="button" onclick="document.getElementById('productos').scrollIntoView({behavior:'smooth'})">Seguir comprando</button>
+    </div>
+  </div>
+</section>
+
+<section class="seccion panel">
+  <h2>¿Necesitás ayuda?</h2>
+  <p>Contactá a Lo de Nico para consultar disponibilidad y coordinar tu compra.</p>
+  <a href="mailto:lodenicogranja@gmail.com">lodenicogranja@gmail.com</a>
+</section>
+
+<section class="seccion" id="administracion">
+  <h2>Administración</h2>
+  <button onclick="document.getElementById('loginAdmin').classList.toggle('oculto')">Abrir panel privado</button>
+  <div id="loginAdmin" class="panel oculto">
+    <h3>Acceso administrador</h3>
+    <label>Correo</label>
+    <input id="adminCorreo" type="email" value="lodenicogranja@gmail.com">
+    <label>Contraseña</label>
+    <input id="adminClave" type="password" autocomplete="current-password">
+    <button class="principal" onclick="iniciarAdmin()">Iniciar sesión</button>
+    <div id="mensajeAdmin"></div>
+  </div>
+  <div id="panelAdmin" class="panel oculto">
+    <h3>Panel de gestión</h3>
+    <button onclick="cerrarAdmin()">Cerrar sesión</button>
+    <div id="contenidoAdmin"></div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <strong>Lo de Nico</strong><br>
+  <span>Pollo · Carne · Cerdo · Congelados</span><br>
+  <a href="mailto:lodenicogranja@gmail.com">lodenicogranja@gmail.com</a>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const SUPABASE_URL="https://hqihkkbniotbaoaekclq.supabase.co";
+const SUPABASE_KEY="PEGAR_AQUI_LA_CLAVE_PUBLICA_ANON_O_PUBLISHABLE";
+const WHATSAPP="REEMPLAZAR_POR_NUMERO_COMPLETO";
+let db=null,productos=[],categorias=[],carrito={},categoriaActiva="Todos",usuarioAdmin=null;
+const dinero=n=>new Intl.NumberFormat("es-AR",{style:"currency",currency:"ARS"}).format(Number(n)||0);
+const escapar=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function conectar(){if(window.supabase&&!SUPABASE_KEY.startsWith("PEGAR_"))db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);}
+function filtrar(c,b){categoriaActiva=c;document.querySelectorAll(".categoria").forEach(x=>x.classList.remove("activa"));b.classList.add("activa");mostrarProductos();}
+function actualizarEntrega(){let retiro=document.getElementById("entrega").value==="pickup";document.getElementById("direccionGrupo").classList.toggle("oculto",retiro);document.getElementById("direccion").required=!retiro;}
+function totalCarrito(){return Object.entries(carrito).reduce((s,[id,q])=>s+(Number(productos.find(p=>String(p.id)===id)?.price)||0)*q,0);}
+function actualizarCarrito(){
+ let items=Object.entries(carrito).filter(([id,q])=>q>0&&productos.some(p=>String(p.id)===id));
+ document.getElementById("cantidad").textContent=items.reduce((s,[,q])=>s+q,0);
+ document.getElementById("subtotal").textContent=dinero(totalCarrito());
+ document.getElementById("carrito")=document.getElementById("carrito");
+ document.getElementById("carrito").innerHTML=items.length?items.map(([id,q])=>{let p=productos.find(x=>String(x.id)===id);return `<div class="lineacarrito"><div><strong>${escapar(p.name)}</strong><br>${dinero(p.price)} × ${q}<br><button type="button" onclick="cambiarCantidad('${id}',-1)">−</button> <button type="button" onclick="cambiarCantidad('${id}',1)">＋</button></div><strong>${dinero(p.price*q)}</strong></div>`}).join(""):"Todavía no agregaste productos.";
+}
+function cambiarCantidad(id,d){carrito[id]=(carrito[id]||0)+d;if(carrito[id]<=0)delete carrito[id];actualizarCarrito();}
+function agregar(id){carrito[id]=(carrito[id]||0)+1;actualizarCarrito();}
+function mostrarProductos(){
+ let q=(document.getElementById("buscar").value||"").toLowerCase();
+ let list=productos.filter(p=>(categoriaActiva==="Todos"||categorias.find(c=>String(c.id)===String(p.category_id))?.name===categoriaActiva)&&(`${p.name} ${p.description||""}`).toLowerCase().includes(q));
+ document.getElementById("listaProductos").innerHTML=list.length?list.map(p=>`<article class="producto"><div class="foto">${p.image_url?`<img src="${escapar(p.image_url)}" alt="${escapar(p.name)}" style="width:100%;height:145px;object-fit:cover;border-radius:10px">`:"🛍️"}</div><h3>${escapar(p.name)}</h3><p>${escapar(p.description||"Consultá disponibilidad")}</p><div class="precio">${dinero(p.price)} / ${escapar(p.unit||"unidad")}</div><button onclick="agregar('${p.id}')">＋ Agregar</button></article>`).join(""):"<p>No hay productos disponibles en esta categoría todavía.</p>";
+}
+async function cargarCatalogo(){
+ conectar();
+ if(!db){document.getElementById("listaProductos").innerHTML="<p class='mensaje'>Falta configurar la clave pública de Supabase.</p>";return;}
+ try{
+  let [c,p]=await Promise.all([db.from("categories").select("*").eq("active",true).order("sort_order"),db.from("products").select("*").eq("active",true).order("name")]);
+  if(c.error)throw c.error;if(p.error)throw p.error;
+  categorias=c.data||[];productos=p.data||[];mostrarProductos();actualizarCarrito();
+ }catch(e){document.getElementById("listaProductos").innerHTML="<p class='mensaje'>No se pudo cargar el catálogo. Revisá la configuración de Supabase.</p>";console.error(e);}
+}
+</script>
+<!-- LA PARTE 2 Y LA PARTE 3 SE AÑADEN ANTES DE CERRAR EL ARCHIVO -->
+
+  
+<script>
+/* PARTE 2: pedidos y administración */
+
+document.getElementById("formPedido").addEventListener("submit", async function(e) {
+  e.preventDefault();
+
+  const resultado = document.getElementById("resultado");
+  if (!db) {
+    resultado.innerHTML = '<div class="mensaje">Falta configurar la clave pública de Supabase.</div>';
+    return;
+  }
+
+  const items = Object.entries(carrito)
+    .filter(([id,q]) => q > 0 && productos.some(p => String(p.id) === id))
+    .map(([id,q]) => ({product_id:Number(id), quantity:q}));
+
+  if (!items.length) {
+    resultado.innerHTML = '<div class="mensaje">Agregá productos al carrito antes de enviar el pedido.</div>';
+    return;
+  }
+
+  const nombre = document.getElementById("nombre").value.trim();
+  const telefono = document.getElementById("telefono").value.trim();
+  const entrega = document.getElementById("entrega").value;
+  const direccion = entrega === "delivery" ? document.getElementById("direccion").value.trim() : null;
+  const pago = document.getElementById("pago").value;
+
+  if (!nombre || !telefono || (entrega === "delivery" && !direccion)) {
+    resultado.innerHTML = '<div class="mensaje">Completá los campos obligatorios.</div>';
+    return;
+  }
+
+  const boton = this.querySelector('button[type="submit"]');
+  boton.disabled = true;
+  boton.textContent = "Enviando pedido...";
+
+  try {
+    const {data,error} = await db.rpc("create_store_order", {
+      p_customer_name:nombre,
+      p_customer_phone:telefono,
+      p_customer_email:document.getElementById("correo").value.trim() || null,
+      p_fulfillment:entrega,
+      p_payment_method:pago,
+      p_delivery_address:direccion,
+      p_delivery_notes:document.getElementById("notas").value.trim() || null,
+      p_items:items
+    });
+
+    if (error) throw error;
+    if (data && data.success === false) {
+      throw new Error(data.message || "No se pudo crear el pedido.");
+    }
+
+    const numero = data?.order_number || data?.order?.order_number || data?.order_id || data?.id || "registrado";
+    const detalle = items.map(i => {
+      const p = productos.find(x => Number(x.id) === i.product_id);
+      return `${p.name} x ${i.quantity} — ${dinero(Number(p.price)*i.quantity)}`;
+    }).join("\n");
+
+    const resumen = `Hola, Lo de Nico. Hice el pedido ${numero}.\nNombre: ${nombre}\nTeléfono: ${telefono}\nEntrega: ${entrega === "pickup" ? "Retiro" : "Envío"}\nDirección: ${direccion || "A coordinar"}\nPago: ${pago === "cash" ? "Efectivo" : "Transferencia"}\n${detalle}\nSubtotal estimado: ${dinero(totalCarrito())}\nPor favor, confirmame disponibilidad y total final.`;
+
+    carrito = {};
+    actualizarCarrito();
+    this.reset();
+    actualizarEntrega();
+
+    resultado.innerHTML = '<div class="mensaje">¡Pedido registrado! Referencia: ' +
+      String(numero).replace(/[&<>"']/g, '') +
+      '. Lo de Nico debe confirmar disponibilidad y total final.</div>';
+
+    if (WHATSAPP && !WHATSAPP.startsWith("REEMPLAZAR")) {
+      const link = document.createElement("a");
+      link.className = "btn";
+      link.style.marginTop = "10px";
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.href = "https://wa.me/" + WHATSAPP + "?text=" + encodeURIComponent(resumen);
+      link.textContent = "Enviar resumen por WhatsApp";
+      resultado.appendChild(link);
+    }
+  } catch (err) {
+    console.error(err);
+    resultado.innerHTML = '<div class="mensaje">No se pudo registrar el pedido. Revisá la conexión e intentá nuevamente.</div>';
+  } finally {
+    boton.disabled = false;
+    boton.textContent = "Enviar pedido";
+  }
+});
+
+async function iniciarAdmin() {
+  const mensaje = document.getElementById("mensajeAdmin");
+  mensaje.textContent = "";
+
+  if (!db) {
+    mensaje.textContent = "Primero configurá la clave pública de Supabase.";
+    return;
+  }
+
+  const email = document.getElementById("adminCorreo").value.trim();
+  const password = document.getElementById("adminClave").value;
+  const {data,error} = await db.auth.signInWithPassword({email,password});
+
+  if (error) {
+    mensaje.textContent = "No se pudo iniciar sesión. Revisá el correo y la contraseña.";
+    return;
+  }
+
+  const {data:admin,error:adminError} = await db
+    .from("admin_users")
+    .select("user_id")
+    .eq("user_id",data.user.id)
+    .maybeSingle();
+
+  if (adminError || !admin) {
+    await db.auth.signOut();
+    mensaje.textContent = "Esta cuenta no está autorizada como administradora.";
+    return;
+  }
+
+  usuarioAdmin = data.user;
+  document.getElementById("loginAdmin").classList.add("oculto");
+  document.getElementById("panelAdmin").classList.remove("oculto");
+  await cargarPanelAdmin();
+}
+
+async function cerrarAdmin() {
+  if (db) await db.auth.signOut();
+  usuarioAdmin = null;
+  document.getElementById("panelAdmin").classList.add("oculto");
+  document.getElementById("loginAdmin").classList.remove("oculto");
+}
+
+async function cargarPanelAdmin() {
+  const zona = document.getElementById("contenidoAdmin");
+  zona.innerHTML = "<p>Cargando panel...</p>";
+
+  const {data:pedidos,error} = await db
+    .from("orders").select("*")
+    .order("created_at",{ascending:false}).limit(100);
+
+  if (error) {
+    zona.textContent = "No se pudieron cargar los pedidos. Revisá las políticas de Supabase.";
+    return;
+  }
+
+  zona.innerHTML = `
+    <h3>Pedidos recibidos</h3>
+    <button type="button" onclick="cargarPanelAdmin()">Actualizar pedidos</button>
+    <div style="overflow:auto">
+      <table style="width:100%;border-collapse:collapse;margin-top:12px">
+        <thead><tr>
+          <th style="text-align:left;padding:8px">Pedido</th>
+          <th style="text-align:left;padding:8px">Cliente</th>
+          <th style="text-align:left;padding:8px">Total</th>
+          <th style="text-align:left;padding:8px">Estado</th>
+          <th style="text-align:left;padding:8px">Acción</th>
+        </tr></thead>
+        <tbody>
+        ${(pedidos||[]).map(p=>`
+          <tr>
+            <td style="padding:8px;border-top:1px solid #ddd">${String(p.order_number||p.id).replace(/[&<>"']/g,"")}</td>
+            <td style="padding:8px;border-top:1px solid #ddd">${String(p.customer_name||"").replace(/[&<>"']/g,"")}<br>${String(p.customer_phone||"").replace(/[&<>"']/g,"")}</td>
+            <td style="padding:8px;border-top:1px solid #ddd">${dinero(p.total)}</td>
+            <td style="padding:8px;border-top:1px solid #ddd">${String(p.order_status||"pendiente").replace(/[&<>"']/g,"")}</td>
+            <td style="padding:8px;border-top:1px solid #ddd">
+              <button type="button" onclick="confirmarPedido(${Number(p.id)})" ${p.order_status==="confirmed"||p.order_status==="cancelled"?"disabled":""}>Confirmar pedido</button>
+            </td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+    </div>
+    <hr>
+    <h3>Productos</h3>
+    <p>Desde esta sección podés revisar el catálogo y agregar productos.</p>
+    <button type="button" onclick="formularioProducto()">Agregar producto</button>
+    <div id="formNuevoProducto"></div>
+    <div id="listaAdminProductos"></div>
+  `;
+
+  await listarProductosAdmin();
+}
+
+async function confirmarPedido(id) {
+  if (!confirm("¿Confirmar el pedido y descontar las cantidades del stock?")) return;
+
+  const {data,error} = await db.rpc("admin_confirm_store_order",{p_order_id:id});
+  if (error || data?.success === false) {
+    alert("No se pudo confirmar el pedido. Revisá el stock y los permisos.");
+    return;
+  }
+
+  alert("Pedido confirmado.");
+  await cargarPanelAdmin();
+}
+
+async function listarProductosAdmin() {
+  const zona = document.getElementById("listaAdminProductos");
+  const {data,error} = await db.from("products").select("*").order("name");
+
+  if (error) {
+    zona.textContent = "No se pudieron cargar los productos.";
+    return;
+  }
+
+  zona.innerHTML = `<div style="overflow:auto"><table style="width:100%;border-collapse:collapse">
+    <thead><tr><th>Producto</th><th>Precio</th><th>Stock</th><th>Visible</th><th>Acción</th></tr></thead>
+    <tbody>${(data||[]).map(p=>`
+      <tr>
+        <td>${String(p.name).replace(/[&<>"']/g,"")}</td>
+        <td>${dinero(p.price)}</td>
+        <td>${Number(p.stock)||0}</td>
+        <td>${p.active?"Sí":"No"}</td>
+        <td><button type="button" onclick="cambiarVisibilidad(${Number(p.id)},${!p.active})">${p.active?"Ocultar":"Mostrar"}</button></td>
+      </tr>`).join("")}</tbody></table></div>`;
+}
+
+async function cambiarVisibilidad(id,activo) {
+  const {error} = await db.from("products")
+    .update({active:activo,updated_at:new Date().toISOString()})
+    .eq("id",id);
+
+  if (error) {
+    alert("No se pudo cambiar la visibilidad del producto.");
+    return;
+  }
+  await listarProductosAdmin();
+}
+
+async function formularioProducto() {
+  const zona = document.getElementById("formNuevoProducto");
+  const {data:cats,error} = await db.from("categories").select("*").order("sort_order");
+
+  if (error) {
+    zona.textContent = "No se pudieron cargar las categorías.";
+    return;
+  }
+
+  zona.innerHTML = `
+    <form id="nuevoProducto" class="panel" style="margin-top:12px">
+      <h3>Nuevo producto</h3>
+      <label>Nombre</label><input id="npNombre" required maxlength="140">
+      <label>Categoría</label>
+      <select id="npCategoria" required>${(cats||[]).map(c=>`<option value="${Number(c.id)}">${String(c.name).replace(/[&<>"']/g,"")}</option>`).join("")}</select>
+      <label>Descripción</label><textarea id="npDescripcion" rows="2"></textarea>
+      <label>Precio en pesos</label><input id="npPrecio" type="number" min="0" step="0.01" required>
+      <label>Unidad (kg, bandeja, unidad…)</label><input id="npUnidad" value="kg" required>
+      <label>Stock</label><input id="npStock" type="number" min="0" step="0.01" value="0">
+      <label>URL de fotografía (opcional)</label><input id="npImagen" type="url" placeholder="https://...">
+      <button type="submit" class="principal">Guardar producto</button>
+      <div id="npResultado"></div>
+    </form>`;
+
+  document.getElementById("nuevoProducto").onsubmit = async function(e) {
+    e.preventDefault();
+    const fila = {
+      name:document.getElementById("npNombre").value.trim(),
+      category_id:Number(document.getElementById("npCategoria").value),
+      description:document.getElementById("npDescripcion").value.trim(),
+      price:Number(document.getElementById("npPrecio").value),
+      unit:document.getElementById("npUnidad").value.trim(),
+      stock:Number(document.getElementById("npStock").value)||0,
+      image_url:document.getElementById("npImagen").value.trim()||null,
+      active:true,featured:false
+    };
+
+    const {error} = await db.from("products").insert(fila);
+    if (error) {
+      document.getElementById("npResultado").textContent = "Error al guardar. Revisá los datos y los permisos.";
+      return;
+    }
+
+    alert("Producto agregado.");
+    await cargarCatalogo();
+    await cargarPanelAdmin();
+  };
+}
+
+actualizarEntrega();
+cargarCatalogo();
+</script>
+
+</body>
+</html>
