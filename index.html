@@ -1311,6 +1311,118 @@ cargarCatalogo();
   }
 })();
 </script>
+
+  
+<style>
+  #compartirTiendaNico {
+    background: #d9ed8b;
+    color: #173d2c;
+  }
+  #actualizarProductosNico {
+    background: #173d2c;
+    color: white;
+    margin: 10px 0;
+  }
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  // 1. BOTÓN PARA COMPARTIR LA TIENDA
+  function instalarCompartir() {
+    const header = document.querySelector("header");
+    if (!header || document.getElementById("compartirTiendaNico")) return;
+
+    const boton = document.createElement("button");
+    boton.id = "compartirTiendaNico";
+    boton.type = "button";
+    boton.textContent = "📤 Compartir tienda";
+
+    boton.addEventListener("click", async () => {
+      const datos = {
+        title: "Lo de Nico | Tienda online",
+        text: "¡Hola! Visitá Lo de Nico y descubrí nuestros productos de pollo, carne, cerdo y congelados.",
+        url: window.location.href.split("#")[0]
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(datos);
+        } else if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(datos.url);
+          alert("¡Enlace de la tienda copiado! Ya podés compartirlo.");
+        } else {
+          window.prompt("Copiá el enlace de Lo de Nico:", datos.url);
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          window.prompt("Copiá el enlace de la tienda:", datos.url);
+        }
+      }
+    });
+
+    header.appendChild(boton);
+  }
+
+  // 2. BOTÓN PARA ACTUALIZAR LOS PRODUCTOS EN ADMINISTRACIÓN
+  function instalarActualizarProductos() {
+    const zona = document.getElementById("listaAdminProductos");
+    if (!zona || document.getElementById("actualizarProductosNico")) return;
+
+    const boton = document.createElement("button");
+    boton.id = "actualizarProductosNico";
+    boton.type = "button";
+    boton.textContent = "🔄 Actualizar productos";
+
+    boton.addEventListener("click", async () => {
+      if (typeof db === "undefined" || !db || !usuarioAdmin) {
+        alert("Iniciá sesión como administrador.");
+        return;
+      }
+
+      boton.disabled = true;
+      boton.textContent = "Actualizando productos…";
+
+      try {
+        await cargarCatalogo();
+        await listarProductosAdmin();
+        boton.textContent = "✅ Productos actualizados";
+      } catch (error) {
+        console.error("Error actualizando productos:", error);
+        boton.textContent = "⚠️ Error al actualizar";
+      } finally {
+        boton.disabled = false;
+        setTimeout(() => {
+          if (boton.isConnected) {
+            boton.textContent = "🔄 Actualizar productos";
+          }
+        }, 2500);
+      }
+    });
+
+    zona.parentNode.insertBefore(boton, zona);
+  }
+
+  function instalarFunciones() {
+    instalarCompartir();
+    instalarActualizarProductos();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", instalarFunciones);
+  } else {
+    instalarFunciones();
+  }
+
+  const observador = new MutationObserver(instalarFunciones);
+  observador.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+})();
+</script>
 </body>
 </html>
+
 
