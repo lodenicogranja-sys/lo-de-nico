@@ -1726,6 +1726,167 @@ cargarCatalogo();
 })();
 </script>
 
+  
+<script>
+/* =========================================================
+   LO DE NICO — BORRAR PEDIDOS FINALIZADOS
+   Solo disponible para el administrador.
+   ========================================================= */
+(function () {
+  "use strict";
+
+  function esAdminNico() {
+    return typeof db !== "undefined" &&
+           db &&
+           typeof usuarioAdmin !== "undefined" &&
+           usuarioAdmin;
+  }
+
+  function estadoFinalizadoNico(estado) {
+    const s = String(estado || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return [
+      "completed",
+      "complete",
+      "delivered",
+      "finalizado",
+      "finalizada",
+      "entregado",
+      "entregada",
+      "completado",
+      "completada"
+    ].includes(s);
+  }
+
+  window.borrarPedidoFinalizadoNico = async function (id) {
+    if (!esAdminNico()) {
+      alert("Iniciá sesión como administrador.");
+      return;
+    }
+
+    if (!confirm(
+      "¿Querés borrar definitivamente este pedido finalizado? Esta acción no se puede deshacer."
+    )) {
+      return;
+    }
+
+    try {
+      const { data: sesion, error: errorSesion } =
+        await db.auth.getUser();
+
+      if (errorSesion || !sesion?.user) {
+        alert("La sesión de administrador no está activa.");
+        return;
+      }
+
+      const { data: admin, error: errorAdmin } = await db
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", sesion.user.id)
+        .maybeSingle();
+
+      if (errorAdmin || !admin) {
+        alert("La cuenta no está autorizada para borrar pedidos.");
+        return;
+      }
+
+      const { data: pedido, error: errorLectura } = await db
+        .from("orders")
+        .select("id, order_status")
+        .eq("id", id)
+        .maybeSingle();
+
+      if (errorLectura) throw errorLectura;
+
+      if (!pedido) {
+        alert("No se encontró ese pedido. Actualizá la lista.");
+        await cargarPanelAdmin();
+        return;
+      }
+
+      if (!estadoFinalizadoNico(pedido.order_status)) {
+        alert(
+          "Solo se pueden borrar pedidos marcados como finalizados o entregados."
+        );
+        return;
+      }
+
+      const { data: eliminado, error: errorBorrado } = await db
+        .from("orders")
+        .delete()
+        .eq("id", id)
+        .select("id");
+
+      if (errorBorrado) throw errorBorrado;
+
+      if (!eliminado || eliminado.length === 0) {
+        alert(
+          "Supabase no confirmó la eliminación. Revisá los permisos de borrado."
+        );
+        return;
+      }
+
+      alert("Pedido finalizado eliminado correctamente.");
+      await cargarPanelAdmin();
+
+    } catch (error) {
+      console.error("Error borrando pedido finalizado:", error);
+      alert(
+        "No se pudo borrar el pedido. Puede tener artículos asociados o faltar permisos en Supabase. El pedido no debe darse por eliminado."
+      );
+    }
+  };
+
+  const cargarPanelOriginal = window.cargarPanelAdmin;
+
+  if (typeof cargarPanelOriginal === "function") {
+    window.cargarPanelAdmin = async function () {
+      await cargarPanelOriginal();
+
+      const zona = document.getElementById("contenidoAdmin");
+      if (!zona || !esAdminNico()) return;
+
+      const filas = zona.querySelectorAll("tbody tr");
+
+      filas.forEach(fila => {
+        if (fila.dataset.botonBorrarFinalizadoNico === "1") return;
+
+        const celdas = fila.querySelectorAll("td");
+        if (celdas.length < 5) return;
+
+        const estado = celdas[3].textContent.trim();
+        if (!estadoFinalizadoNico(estado)) return;
+
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.textContent = "🗑️ Borrar finalizado";
+        boton.style.cssText =
+          "display:block;margin-top:8px;background:#a52222;color:#fff;";
+
+        const textoPedido = celdas[0].textContent.trim();
+
+        boton.addEventListener("click", async () => {
+          boton.disabled = true;
+          try {
+            await window.borrarPedidoFinalizadoNico(textoPedido);
+          } finally {
+            if (boton.isConnected) boton.disabled = false;
+          }
+        });
+
+        celdas[4].appendChild(boton);
+        fila.dataset.botonBorrarFinalizadoNico = "1";
+      });
+    };
+  }
+})();
+</script>
+
+
 </body>
 </html>
 
