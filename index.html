@@ -823,5 +823,326 @@ actualizarEntrega();
 cargarCatalogo();
 </script>
 
+  
+<style>
+  #contenedorLogoNico {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  #contenedorLogoNico img {
+    width: 76px;
+    height: 76px;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+
+  #adminImagenesNico {
+    margin: 12px 0;
+    padding: 14px;
+    border: 1px solid #d5d5d5;
+    border-radius: 12px;
+  }
+
+  #adminImagenesNico input,
+  #adminImagenesNico button {
+    margin-top: 8px;
+  }
+</style>
+
+<script>
+(() => {
+  "use strict";
+
+  const BUCKET = "product-images";
+  const ADMIN_ID = "8fd1814e-02c4-4565-b199-8ff505ac352f";
+
+  let cliente = null;
+  let usuarioActual = null;
+
+  function obtenerCliente() {
+    if (cliente) return cliente;
+
+    // Reutiliza el cliente de Supabase existente, si está disponible.
+    if (typeof supabaseClient !== "undefined" &&
+        supabaseClient &&
+        typeof supabaseClient.from === "function") {
+      cliente = supabaseClient;
+    } else if (typeof supabase !== "undefined" &&
+               supabase &&
+               typeof supabase.from === "function") {
+      cliente = supabase;
+    } else if (window.supabaseClient &&
+               typeof window.supabaseClient.from === "function") {
+      cliente = window.supabaseClient;
+    }
+
+    if (!cliente) {
+      console.error(
+        "Lo de Nico: no se encontró el cliente Supabase existente."
+      );
+    }
+    return cliente;
+  }
+
+  async function comprobarAdmin() {
+    const sb = obtenerCliente();
+    if (!sb) return false;
+
+    const { data } = await sb.auth.getUser();
+    usuarioActual = data?.user || null;
+
+    return !!usuarioActual && usuarioActual.id === ADMIN_ID;
+  }
+
+  async function subirImagen(file, carpeta) {
+    const sb = obtenerCliente();
+
+    if (!sb) throw new Error("No se encontró la conexión con Supabase.");
+    if (!(file instanceof File) || !file.type.startsWith("image/")) {
+      throw new Error("Elegí un archivo de imagen válido.");
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      throw new Error("La imagen no puede superar los 8 MB.");
+    }
+
+    const extension = (
+      file.name.split(".").pop() || "jpg"
+    ).toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+
+    const ruta = `${carpeta}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+    const { error } = await sb.storage
+      .from(BUCKET)
+      .upload(ruta, file, {
+        upsert: false,
+        contentType: file.type
+      });
+
+    if (error) throw error;
+
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(ruta);
+    if (!data?.publicUrl) {
+      throw new Error("No se pudo obtener la dirección pública de la imagen.");
+    }
+
+    return data.publicUrl;
+  }
+
+  function mostrarLogo(url) {
+    const header = document.querySelector("header");
+    if (!header) return;
+
+    let contenedor = document.getElementById("contenedorLogoNico");
+    if (!contenedor) {
+      const bloqueTitulo = header.querySelector("h1")?.parentElement;
+      if (!bloqueTitulo) return;
+
+      contenedor = document.createElement("div");
+      contenedor.id = "contenedorLogoNico";
+      header.insertBefore(contenedor, header.firstChild);
+      contenedor.appendChild(bloqueTitulo);
+    }
+
+    let img = document.getElementById("logoImagenNico");
+    if (!img) {
+      img = document.createElement("img");
+      img.id = "logoImagenNico";
+      img.alt = "Logo de Lo de Nico";
+      contenedor.prepend(img);
+    }
+
+    if (url) {
+      img.src = url;
+      img.hidden = false;
+    } else {
+      img.hidden = true;
+    }
+  }
+
+  async function cargarLogo() {
+    const sb = obtenerCliente();
+    if (!sb) return;
+
+    const { data, error } = await sb
+      .from("store_settings")
+      .select("value")
+      .eq("key", "logo_url")
+      .maybeSingle();
+
+    if (error) {
+      console.warn("No se pudo cargar el logo:", error.message);
+      return;
+    }
+
+    mostrarLogo(data?.value || "");
+  }
+
+  async function instalarPanelLogo() {
+    const contenido = document.getElementById("contenidoAdmin");
+    if (!contenido || document.getElementById("adminLogoNico")) return;
+    if (!(await comprobarAdmin())) return;
+
+    const panel = document.createElement("section");
+    panel.id = "adminLogoNico";
+    panel.className = "card";
+    panel.style.cssText =
+      "margin:16px 0;padding:16px;border:1px solid #ddd;border-radius:14px";
+
+    panel.innerHTML = `
+      <h3>🖼️ Logotipo de Lo de Nico</h3>
+      <p>Elegí una imagen de tu teléfono para usarla como logo.</p>
+      <input id="archivoLogoNico" type="file"
+        accept="image/*" capture="environment">
+      <button id="guardarLogoNico" type="button" class="btn">
+        Guardar logotipo
+      </button>
+      <p id="estadoLogoNico" role="status"></p>
+    `;
+
+    contenido.prepend(panel);
+
+    panel.querySelector("#guardarLogoNico").addEventListener(
+      "click", async () => {
+        const estado = panel.querySelector("#estadoLogoNico");
+        const archivo = panel.querySelector("#archivoLogoNico").files[0];
+        const boton = panel.querySelector("#guardarLogoNico");
+
+        if (!archivo) {
+          estado.textContent = "Primero elegí una imagen.";
+          return;
+        }
+
+        boton.disabled = true;
+        estado.textContent = "Subiendo imagen…";
+
+        try {
+          if (!(await comprobarAdmin())) {
+            throw new Error("Tu sesión no tiene permisos de administrador.");
+          }
+
+          const url = await subirImagen(archivo, "logos");
+
+          const { error } = await obtenerCliente()
+            .from("store_settings")
+            .upsert({
+              key: "logo_url",
+              value: url,
+              updated_at: new Date().toISOString(),
+              updated_by: usuarioActual.id
+            }, { onConflict: "key" });
+
+          if (error) throw error;
+
+          mostrarLogo(url);
+          estado.textContent = "Logotipo guardado correctamente.";
+        } catch (e) {
+          console.error(e);
+          estado.textContent = "Error: " + (e.message || "No se pudo guardar.");
+        } finally {
+          boton.disabled = false;
+        }
+      }
+    );
+  }
+
+  function instalarFotosProductos() {
+    const formulario = document.getElementById("formProducto");
+    if (!formulario || formulario.dataset.nicoFotosInstaladas) return;
+
+    const campoUrl = formulario.querySelector("#npImagen");
+    if (!campoUrl) return;
+
+    formulario.dataset.nicoFotosInstaladas = "1";
+
+    const zona = document.createElement("div");
+    zona.id = "adminImagenesNico";
+    zona.innerHTML = `
+      <label for="archivoProductoNico">
+        <strong>📷 Foto del producto desde el teléfono</strong>
+      </label>
+      <input id="archivoProductoNico" type="file" accept="image/*">
+      <p id="estadoFotoProductoNico" role="status">
+        También podés seguir usando el campo de URL existente.
+      </p>
+    `;
+
+    campoUrl.insertAdjacentElement("afterend", zona);
+
+    formulario.addEventListener("submit", async (evento) => {
+      const archivo = zona.querySelector("#archivoProductoNico").files[0];
+      if (!archivo || formulario.dataset.nicoFotoLista === "1") return;
+
+      evento.preventDefault();
+      evento.stopImmediatePropagation();
+
+      const boton = evento.submitter ||
+        formulario.querySelector('[type="submit"]');
+      const estado = zona.querySelector("#estadoFotoProductoNico");
+
+      if (boton) boton.disabled = true;
+      estado.textContent = "Subiendo fotografía…";
+
+      try {
+        if (!(await comprobarAdmin())) {
+          throw new Error("Tu sesión no tiene permisos de administrador.");
+        }
+
+        campoUrl.value = await subirImagen(archivo, "productos");
+        formulario.dataset.nicoFotoLista = "1";
+        estado.textContent = "Foto cargada. Guardando producto…";
+
+        if (boton) boton.disabled = false;
+        formulario.requestSubmit(boton || undefined);
+      } catch (e) {
+        console.error(e);
+        estado.textContent = "Error: " + (e.message || "No se pudo subir.");
+        if (boton) boton.disabled = false;
+      }
+    }, true);
+
+    formulario.addEventListener("submit", () => {
+      delete formulario.dataset.nicoFotoLista;
+    });
+  }
+
+  function vigilarAdmin() {
+    instalarPanelLogo();
+    instalarFotosProductos();
+  }
+
+  function iniciar() {
+    cargarLogo();
+
+    const admin = document.getElementById("contenidoAdmin");
+    if (admin) {
+      new MutationObserver(vigilarAdmin).observe(admin, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    const panel = document.getElementById("panelAdmin");
+    if (panel) {
+      new MutationObserver(vigilarAdmin).observe(panel, {
+        childList: true,
+        subtree: true
+      });
+    }
+
+    vigilarAdmin();
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", iniciar, { once: true });
+  } else {
+    iniciar();
+  }
+})();
+</script>
+
+
 </body>
 </html>
