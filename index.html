@@ -823,33 +823,11 @@ actualizarEntrega();
 cargarCatalogo();
 </script>
 
-  
 <style>
-  #contenedorLogoNico {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-  }
-
-  #contenedorLogoNico img {
-    width: 76px;
-    height: 76px;
-    object-fit: contain;
-    border-radius: 12px;
-  }
-
-  #adminImagenesNico {
-    margin: 12px 0;
-    padding: 14px;
-    border: 1px solid #d5d5d5;
-    border-radius: 12px;
-  }
-
-  #adminImagenesNico input,
-  #adminImagenesNico button {
-    margin-top: 8px;
-  }
+#contenedorLogoNico{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+#logoImagenNico{width:76px;height:76px;object-fit:contain;border-radius:12px}
+#adminLogoNico,#adminImagenesNico{margin:14px 0;padding:14px;border:1px solid #e2e6db;border-radius:12px;background:#fff}
+#adminLogoNico input,#adminImagenesNico input{margin-top:8px}
 </style>
 
 <script>
@@ -857,282 +835,262 @@ cargarCatalogo();
   "use strict";
 
   const BUCKET = "product-images";
-  const ADMIN_ID = "8fd1814e-02c4-4565-b199-8ff505ac352f";
 
-  let cliente = null;
-  let usuarioActual = null;
-
-  function obtenerCliente() {
-    if (cliente) return cliente;
-
-    // Reutiliza el cliente de Supabase existente, si está disponible.
-    if (typeof supabaseClient !== "undefined" &&
-        supabaseClient &&
-        typeof supabaseClient.from === "function") {
-      cliente = supabaseClient;
-    } else if (typeof supabase !== "undefined" &&
-               supabase &&
-               typeof supabase.from === "function") {
-      cliente = supabase;
-    } else if (window.supabaseClient &&
-               typeof window.supabaseClient.from === "function") {
-      cliente = window.supabaseClient;
-    }
-
-    if (!cliente) {
-      console.error(
-        "Lo de Nico: no se encontró el cliente Supabase existente."
-      );
-    }
-    return cliente;
+  function cliente() {
+    return typeof db !== "undefined" && db ? db : null;
   }
 
-  async function comprobarAdmin() {
-    const sb = obtenerCliente();
+  async function esAdmin() {
+    const sb = cliente();
     if (!sb) return false;
 
-    const { data } = await sb.auth.getUser();
-    usuarioActual = data?.user || null;
+    const { data, error } = await sb.auth.getUser();
+    if (error || !data?.user) return false;
 
-    return !!usuarioActual && usuarioActual.id === ADMIN_ID;
+    const { data: admin, error: adminError } = await sb
+      .from("admin_users")
+      .select("user_id")
+      .eq("user_id", data.user.id)
+      .maybeSingle();
+
+    return !adminError && !!admin;
   }
 
-  async function subirImagen(file, carpeta) {
-    const sb = obtenerCliente();
+  async function subirImagen(archivo, carpeta) {
+    const sb = cliente();
 
-    if (!sb) throw new Error("No se encontró la conexión con Supabase.");
-    if (!(file instanceof File) || !file.type.startsWith("image/")) {
-      throw new Error("Elegí un archivo de imagen válido.");
+    if (!sb) throw new Error("No hay conexión con Supabase.");
+    if (!archivo || !archivo.type.startsWith("image/")) {
+      throw new Error("Seleccioná una imagen válida.");
     }
-    if (file.size > 8 * 1024 * 1024) {
-      throw new Error("La imagen no puede superar los 8 MB.");
+    if (archivo.size > 8 * 1024 * 1024) {
+      throw new Error("La imagen debe pesar menos de 8 MB.");
+    }
+    if (!(await esAdmin())) {
+      throw new Error("La sesión no está autorizada como administradora.");
     }
 
-    const extension = (
-      file.name.split(".").pop() || "jpg"
-    ).toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+    const extension = (archivo.name.split(".").pop() || "jpg")
+      .toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
 
-    const ruta = `${carpeta}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const nombre = `${carpeta}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
 
-    const { error } = await sb.storage
-      .from(BUCKET)
-      .upload(ruta, file, {
-        upsert: false,
-        contentType: file.type
-      });
+    const { error } = await sb.storage.from(BUCKET).upload(nombre, archivo, {
+      upsert: false,
+      contentType: archivo.type
+    });
 
     if (error) throw error;
 
-    const { data } = sb.storage.from(BUCKET).getPublicUrl(ruta);
-    if (!data?.publicUrl) {
-      throw new Error("No se pudo obtener la dirección pública de la imagen.");
-    }
+    const { data } = sb.storage.from(BUCKET).getPublicUrl(nombre);
+    if (!data?.publicUrl) throw new Error("No se obtuvo la URL de la imagen.");
 
     return data.publicUrl;
   }
 
-  function mostrarLogo(url) {
+  function pintarLogo(url) {
     const header = document.querySelector("header");
-    if (!header) return;
+    const titulo = header?.querySelector("h1")?.parentElement;
+    if (!header || !titulo) return;
 
     let contenedor = document.getElementById("contenedorLogoNico");
-    if (!contenedor) {
-      const bloqueTitulo = header.querySelector("h1")?.parentElement;
-      if (!bloqueTitulo) return;
 
+    if (!contenedor) {
       contenedor = document.createElement("div");
       contenedor.id = "contenedorLogoNico";
       header.insertBefore(contenedor, header.firstChild);
-      contenedor.appendChild(bloqueTitulo);
+      contenedor.appendChild(titulo);
     }
 
-    let img = document.getElementById("logoImagenNico");
-    if (!img) {
-      img = document.createElement("img");
-      img.id = "logoImagenNico";
-      img.alt = "Logo de Lo de Nico";
-      contenedor.prepend(img);
+    let imagen = document.getElementById("logoImagenNico");
+
+    if (!imagen) {
+      imagen = document.createElement("img");
+      imagen.id = "logoImagenNico";
+      imagen.alt = "Logo de Lo de Nico";
+      contenedor.prepend(imagen);
     }
 
     if (url) {
-      img.src = url;
-      img.hidden = false;
+      imagen.src = url;
+      imagen.hidden = false;
     } else {
-      img.hidden = true;
+      imagen.removeAttribute("src");
+      imagen.hidden = true;
     }
   }
 
   async function cargarLogo() {
-    const sb = obtenerCliente();
+    const sb = cliente();
     if (!sb) return;
 
-    const { data, error } = await sb
-      .from("store_settings")
+    const { data, error } = await sb.from("store_settings")
       .select("value")
       .eq("key", "logo_url")
       .maybeSingle();
 
     if (error) {
-      console.warn("No se pudo cargar el logo:", error.message);
+      console.warn("No se pudo leer el logo:", error.message);
       return;
     }
 
-    mostrarLogo(data?.value || "");
+    pintarLogo(data?.value || "");
   }
 
-  async function instalarPanelLogo() {
-    const contenido = document.getElementById("contenidoAdmin");
-    if (!contenido || document.getElementById("adminLogoNico")) return;
-    if (!(await comprobarAdmin())) return;
+  async function guardarLogo(boton, estado, archivo) {
+    if (!archivo) {
+      estado.textContent = "Elegí una imagen primero.";
+      return;
+    }
+
+    boton.disabled = true;
+
+    try {
+      const sb = cliente();
+      if (!sb || !(await esAdmin())) {
+        throw new Error("Iniciá sesión con una cuenta administradora.");
+      }
+
+      estado.textContent = "Subiendo logotipo…";
+      const url = await subirImagen(archivo, "logos");
+
+      const { data: existente, error: lecturaError } = await sb
+        .from("store_settings")
+        .select("id,key")
+        .eq("key", "logo_url")
+        .maybeSingle();
+
+      if (lecturaError) throw lecturaError;
+
+      let resultado;
+
+      if (existente) {
+        resultado = await sb.from("store_settings")
+          .update({
+            value: url,
+            updated_at: new Date().toISOString(),
+            updated_by: (await sb.auth.getUser()).data.user.id
+          })
+          .eq("key", "logo_url");
+      } else {
+        resultado = await sb.from("store_settings")
+          .insert({
+            key: "logo_url",
+            value: url,
+            updated_by: (await sb.auth.getUser()).data.user.id
+          });
+      }
+
+      if (resultado.error) throw resultado.error;
+
+      pintarLogo(url);
+      estado.textContent = "Logotipo guardado correctamente.";
+    } catch (error) {
+      console.error("Error guardando logo:", error);
+      estado.textContent = "No se pudo guardar: " + (error.message || "Error desconocido.");
+    } finally {
+      boton.disabled = false;
+    }
+  }
+
+  function instalarPanelLogo() {
+    const zona = document.getElementById("contenidoAdmin");
+    if (!zona || document.getElementById("adminLogoNico")) return;
 
     const panel = document.createElement("section");
     panel.id = "adminLogoNico";
-    panel.className = "card";
-    panel.style.cssText =
-      "margin:16px 0;padding:16px;border:1px solid #ddd;border-radius:14px";
-
     panel.innerHTML = `
-      <h3>🖼️ Logotipo de Lo de Nico</h3>
-      <p>Elegí una imagen de tu teléfono para usarla como logo.</p>
-      <input id="archivoLogoNico" type="file"
-        accept="image/*" capture="environment">
-      <button id="guardarLogoNico" type="button" class="btn">
-        Guardar logotipo
-      </button>
+      <h3>🖼️ Logo de Lo de Nico</h3>
+      <label for="archivoLogoNico">Elegir imagen del teléfono</label>
+      <input id="archivoLogoNico" type="file" accept="image/*">
+      <button id="guardarLogoNico" type="button">Guardar logo</button>
       <p id="estadoLogoNico" role="status"></p>
     `;
 
-    contenido.prepend(panel);
+    zona.prepend(panel);
 
-    panel.querySelector("#guardarLogoNico").addEventListener(
-      "click", async () => {
-        const estado = panel.querySelector("#estadoLogoNico");
-        const archivo = panel.querySelector("#archivoLogoNico").files[0];
-        const boton = panel.querySelector("#guardarLogoNico");
-
-        if (!archivo) {
-          estado.textContent = "Primero elegí una imagen.";
-          return;
-        }
-
-        boton.disabled = true;
-        estado.textContent = "Subiendo imagen…";
-
-        try {
-          if (!(await comprobarAdmin())) {
-            throw new Error("Tu sesión no tiene permisos de administrador.");
-          }
-
-          const url = await subirImagen(archivo, "logos");
-
-          const { error } = await obtenerCliente()
-            .from("store_settings")
-            .upsert({
-              key: "logo_url",
-              value: url,
-              updated_at: new Date().toISOString(),
-              updated_by: usuarioActual.id
-            }, { onConflict: "key" });
-
-          if (error) throw error;
-
-          mostrarLogo(url);
-          estado.textContent = "Logotipo guardado correctamente.";
-        } catch (e) {
-          console.error(e);
-          estado.textContent = "Error: " + (e.message || "No se pudo guardar.");
-        } finally {
-          boton.disabled = false;
-        }
-      }
-    );
+    panel.querySelector("#guardarLogoNico").addEventListener("click", () => {
+      guardarLogo(
+        panel.querySelector("#guardarLogoNico"),
+        panel.querySelector("#estadoLogoNico"),
+        panel.querySelector("#archivoLogoNico").files[0]
+      );
+    });
   }
 
-  function instalarFotosProductos() {
-    const formulario = document.getElementById("formProducto");
-    if (!formulario || formulario.dataset.nicoFotosInstaladas) return;
+  function instalarCampoFoto() {
+    const formulario = document.getElementById("nuevoProducto");
+    if (!formulario || formulario.dataset.fotoNicoInstalada) return;
 
     const campoUrl = formulario.querySelector("#npImagen");
     if (!campoUrl) return;
 
-    formulario.dataset.nicoFotosInstaladas = "1";
+    formulario.dataset.fotoNicoInstalada = "1";
 
     const zona = document.createElement("div");
     zona.id = "adminImagenesNico";
     zona.innerHTML = `
       <label for="archivoProductoNico">
-        <strong>📷 Foto del producto desde el teléfono</strong>
+        <strong>📷 Foto del producto desde el móvil</strong>
       </label>
       <input id="archivoProductoNico" type="file" accept="image/*">
-      <p id="estadoFotoProductoNico" role="status">
-        También podés seguir usando el campo de URL existente.
+      <p id="estadoFotoNico" role="status">
+        Podés elegir una foto de tu galería o usar la URL de arriba.
       </p>
     `;
 
     campoUrl.insertAdjacentElement("afterend", zona);
 
-    formulario.addEventListener("submit", async (evento) => {
+    formulario.addEventListener("submit", async evento => {
       const archivo = zona.querySelector("#archivoProductoNico").files[0];
-      if (!archivo || formulario.dataset.nicoFotoLista === "1") return;
+
+      if (!archivo || formulario.dataset.fotoNicoLista === "1") {
+        delete formulario.dataset.fotoNicoLista;
+        return;
+      }
 
       evento.preventDefault();
       evento.stopImmediatePropagation();
 
-      const boton = evento.submitter ||
-        formulario.querySelector('[type="submit"]');
-      const estado = zona.querySelector("#estadoFotoProductoNico");
+      const boton = formulario.querySelector('[type="submit"]');
+      const estado = zona.querySelector("#estadoFotoNico");
 
-      if (boton) boton.disabled = true;
-      estado.textContent = "Subiendo fotografía…";
+      boton.disabled = true;
 
       try {
-        if (!(await comprobarAdmin())) {
-          throw new Error("Tu sesión no tiene permisos de administrador.");
-        }
-
+        estado.textContent = "Subiendo fotografía…";
         campoUrl.value = await subirImagen(archivo, "productos");
-        formulario.dataset.nicoFotoLista = "1";
+
+        formulario.dataset.fotoNicoLista = "1";
         estado.textContent = "Foto cargada. Guardando producto…";
 
-        if (boton) boton.disabled = false;
-        formulario.requestSubmit(boton || undefined);
-      } catch (e) {
-        console.error(e);
-        estado.textContent = "Error: " + (e.message || "No se pudo subir.");
-        if (boton) boton.disabled = false;
+        boton.disabled = false;
+        formulario.requestSubmit(boton);
+      } catch (error) {
+        console.error("Error subiendo fotografía:", error);
+        estado.textContent = "No se pudo subir la foto: " + (error.message || "Error desconocido.");
+        boton.disabled = false;
       }
     }, true);
-
-    formulario.addEventListener("submit", () => {
-      delete formulario.dataset.nicoFotoLista;
-    });
   }
 
-  function vigilarAdmin() {
+  function vigilarPanel() {
     instalarPanelLogo();
-    instalarFotosProductos();
+    instalarCampoFoto();
   }
 
   function iniciar() {
     cargarLogo();
 
-    const admin = document.getElementById("contenidoAdmin");
-    if (admin) {
-      new MutationObserver(vigilarAdmin).observe(admin, {
+    const contenido = document.getElementById("contenidoAdmin");
+    if (contenido) {
+      new MutationObserver(vigilarPanel).observe(contenido, {
         childList: true,
         subtree: true
       });
     }
 
-    const panel = document.getElementById("panelAdmin");
-    if (panel) {
-      new MutationObserver(vigilarAdmin).observe(panel, {
-        childList: true,
-        subtree: true
-      });
-    }
-
-    vigilarAdmin();
+    vigilarPanel();
   }
 
   if (document.readyState === "loading") {
@@ -1142,6 +1100,9 @@ cargarCatalogo();
   }
 })();
 </script>
+
+  
+  
 
 
 </body>
