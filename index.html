@@ -1103,6 +1103,120 @@ cargarCatalogo();
 
   
   
+<script>
+(() => {
+  "use strict";
+
+  const esperar = setInterval(() => {
+    if (typeof db === "undefined" || !db ||
+        typeof pintarLogo !== "function" ||
+        typeof subirImagen !== "function" ||
+        typeof esAdmin !== "function") {
+      return;
+    }
+
+    clearInterval(esperar);
+
+    // Sustituye el guardado anterior por una versión que actualiza
+    // la fila existente y no intenta insertar otra con la misma PK.
+    window.guardarLogo = async function(boton, estado, archivo) {
+      if (!archivo) {
+        estado.textContent = "Elegí una imagen primero.";
+        return;
+      }
+
+      boton.disabled = true;
+
+      try {
+        if (!(await esAdmin())) {
+          throw new Error("Iniciá sesión con una cuenta administradora.");
+        }
+
+        estado.textContent = "Subiendo logotipo…";
+
+        const url = await subirImagen(archivo, "logos");
+
+        const { data: sesion, error: errorSesion } =
+          await db.auth.getUser();
+
+        if (errorSesion || !sesion?.user) {
+          throw new Error("La sesión de administrador no está activa.");
+        }
+
+        const { data: filas, error: errorLectura } = await db
+          .from("store_settings")
+          .select("id,key")
+          .limit(100);
+
+        if (errorLectura) throw errorLectura;
+
+        const existente = (filas || []).find(f => f.key === "logo_url");
+
+        let resultado;
+
+        if (existente) {
+          resultado = await db
+            .from("store_settings")
+            .update({
+              value: url,
+              updated_at: new Date().toISOString(),
+              updated_by: sesion.user.id
+            })
+            .eq("id", existente.id);
+        } else {
+          const base = (filas || []).find(f => f.id === true);
+
+          if (!base) {
+            throw new Error("No se encontró la fila de configuración existente.");
+          }
+
+          resultado = await db
+            .from("store_settings")
+            .update({
+              key: "logo_url",
+              value: url,
+              updated_at: new Date().toISOString(),
+              updated_by: sesion.user.id
+            })
+            .eq("id", base.id);
+        }
+
+        if (resultado.error) throw resultado.error;
+
+        pintarLogo(url);
+        estado.textContent = "Logotipo guardado correctamente.";
+      } catch (error) {
+        console.error("Error guardando logo:", error);
+        estado.textContent =
+          "No se pudo guardar: " + (error.message || "Error desconocido.");
+      } finally {
+        boton.disabled = false;
+      }
+    };
+
+    // El botón del panel usa una referencia directa a la función.
+    // Actualizamos el controlador para que utilice la reparación.
+    const boton = document.getElementById("guardarLogoNico");
+
+    if (boton && !boton.dataset.logoReparado) {
+      boton.dataset.logoReparado = "1";
+
+      boton.onclick = () => {
+        const archivo = document.getElementById("archivoLogoNico")?.files?.[0];
+        const estado = document.getElementById("estadoLogoNico");
+
+        window.guardarLogo(boton, estado, archivo);
+      };
+    }
+  }, 250);
+
+  // Evita dejar un proceso de comprobación activo indefinidamente.
+  setTimeout(() => clearInterval(esperar), 15000);
+})();
+</script>
+</body>
+</html>
+
 
 
 </body>
