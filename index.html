@@ -1102,122 +1102,215 @@ cargarCatalogo();
 </script>
 
   
-  
+
 <script>
 (() => {
   "use strict";
 
-  const esperar = setInterval(() => {
-    if (typeof db === "undefined" || !db ||
-        typeof pintarLogo !== "function" ||
-        typeof subirImagen !== "function" ||
-        typeof esAdmin !== "function") {
+  let observador = null;
+
+  async function guardarLogoCorregido(boton, estado, archivo) {
+    if (!archivo) {
+      estado.textContent = "Elegí una imagen primero.";
       return;
     }
 
-    clearInterval(esperar);
+    boton.disabled = true;
 
-    // Sustituye el guardado anterior por una versión que actualiza
-    // la fila existente y no intenta insertar otra con la misma PK.
-    window.guardarLogo = async function(boton, estado, archivo) {
-      if (!archivo) {
-        estado.textContent = "Elegí una imagen primero.";
-        return;
+    try {
+      if (typeof db === "undefined" || !db) {
+        throw new Error("No hay conexión con Supabase.");
       }
 
-      boton.disabled = true;
+      const { data: sesion, error: errorSesion } =
+        await db.auth.getUser();
 
-      try {
-        if (!(await esAdmin())) {
-          throw new Error("Iniciá sesión con una cuenta administradora.");
-        }
+      if (errorSesion || !sesion?.user) {
+        throw new Error("Iniciá sesión como administrador.");
+      }
 
-        estado.textContent = "Subiendo logotipo…";
+      const { data: admin, error: errorAdmin } = await db
+        .from("admin_users")
+        .select("user_id")
+        .eq("user_id", sesion.user.id)
+        .maybeSingle();
 
-        const url = await subirImagen(archivo, "logos");
+      if (errorAdmin || !admin) {
+        throw new Error("La cuenta no está autorizada.");
+      }
 
-        const { data: sesion, error: errorSesion } =
-          await db.auth.getUser();
+      if (!archivo.type.startsWith("image/")) {
+        throw new Error("Seleccioná una imagen válida.");
+      }
 
-        if (errorSesion || !sesion?.user) {
-          throw new Error("La sesión de administrador no está activa.");
-        }
+      if (archivo.size > 8 * 1024 * 1024) {
+        throw new Error("La imagen debe pesar menos de 8 MB.");
+      }
 
-        const { data: filas, error: errorLectura } = await db
+      estado.textContent = "Subiendo logotipo…";
+
+      const extension =
+        (archivo.name.split(".").pop() || "jpg")
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "") || "jpg";
+
+      const ruta = "logos/" + Date.now() + "-" +
+        Math.random().toString(36).slice(2) + "." + extension;
+
+      const { error: errorSubida } = await db.storage
+        .from("product-images")
+        .upload(ruta, archivo, {
+          upsert: false,
+          contentType: archivo.type
+        });
+
+      if (errorSubida) throw errorSubida;
+
+      const { data: imagen } = db.storage
+        .from("product-images")
+        .getPublicUrl(ruta);
+
+      const url = imagen?.publicUrl;
+
+      if (!url) {
+        throw new Error("No se pudo obtener la URL del logotipo.");
+      }
+
+      // Primero buscamos si ya existe una configuración para el logo.
+      const { data: filaLogo, error: errorLectura } = await db
+        .from("store_settings")
+        .select("id,key")
+        .eq("key", "logo_url")
+        .maybeSingle();
+
+      if (errorLectura) throw errorLectura;
+
+      let resultado;
+
+      if (filaLogo) {
+        // Actualiza el logo existente.
+        resultado = await db
           .from("store_settings")
-          .select("id,key")
+          .update({
+            value: url,
+            updated_at: new Date().toISOString(),
+            updated_by: sesion.user.id
+          })
+          .eq("id", filaLogo.id);
+      } else {
+        // Reutiliza la fila existente: no inserta otra fila.
+        const { data: filas, error: errorFilas } = await db
+          .from("store_settings")
+          .select("id")
           .limit(100);
 
-        if (errorLectura) throw errorLectura;
+        if (errorFilas) throw errorFilas;
 
-        const existente = (filas || []).find(f => f.key === "logo_url");
+        const base = (filas || []).find(f => f.id === true);
 
-        let resultado;
-
-        if (existente) {
-          resultado = await db
-            .from("store_settings")
-            .update({
-              value: url,
-              updated_at: new Date().toISOString(),
-              updated_by: sesion.user.id
-            })
-            .eq("id", existente.id);
-        } else {
-          const base = (filas || []).find(f => f.id === true);
-
-          if (!base) {
-            throw new Error("No se encontró la fila de configuración existente.");
-          }
-
-          resultado = await db
-            .from("store_settings")
-            .update({
-              key: "logo_url",
-              value: url,
-              updated_at: new Date().toISOString(),
-              updated_by: sesion.user.id
-            })
-            .eq("id", base.id);
+        if (!base) {
+          throw new Error(
+            "No se encontró la fila de configuración existente."
+          );
         }
 
-        if (resultado.error) throw resultado.error;
-
-        pintarLogo(url);
-        estado.textContent = "Logotipo guardado correctamente.";
-      } catch (error) {
-        console.error("Error guardando logo:", error);
-        estado.textContent =
-          "No se pudo guardar: " + (error.message || "Error desconocido.");
-      } finally {
-        boton.disabled = false;
+        resultado = await db
+          .from("store_settings")
+          .update({
+            key: "logo_url",
+            value: url,
+            updated_at: new Date().toISOString(),
+            updated_by: sesion.user.id
+          })
+          .eq("id", base.id);
       }
-    };
 
-    // El botón del panel usa una referencia directa a la función.
-    // Actualizamos el controlador para que utilice la reparación.
-    const boton = document.getElementById("guardarLogoNico");
+      if (resultado.error) throw resultado.error;
 
-    if (boton && !boton.dataset.logoReparado) {
-      boton.dataset.logoReparado = "1";
+      let logo = document.getElementById("logoImagenNico");
 
-      boton.onclick = () => {
-        const archivo = document.getElementById("archivoLogoNico")?.files?.[0];
-        const estado = document.getElementById("estadoLogoNico");
+      if (!logo) {
+        const header = document.querySelector("header");
+        const titulo = header?.querySelector("h1")?.parentElement;
 
-        window.guardarLogo(boton, estado, archivo);
-      };
+        if (header && titulo) {
+          let contenedor = document.getElementById("contenedorLogoNico");
+
+          if (!contenedor) {
+            contenedor = document.createElement("div");
+            contenedor.id = "contenedorLogoNico";
+            header.insertBefore(contenedor, header.firstChild);
+            contenedor.appendChild(titulo);
+          }
+
+          logo = document.createElement("img");
+          logo.id = "logoImagenNico";
+          logo.alt = "Logo de Lo de Nico";
+          logo.style.cssText =
+            "width:76px;height:76px;object-fit:contain;border-radius:12px";
+          contenedor.prepend(logo);
+        }
+      }
+
+      if (logo) {
+        logo.src = url;
+        logo.hidden = false;
+      }
+
+      estado.textContent = "Logotipo guardado correctamente.";
+    } catch (error) {
+      console.error("Error guardando logo:", error);
+      estado.textContent =
+        "No se pudo guardar: " +
+        (error.message || "Error desconocido.");
+    } finally {
+      boton.disabled = false;
     }
-  }, 250);
+  }
 
-  // Evita dejar un proceso de comprobación activo indefinidamente.
-  setTimeout(() => clearInterval(esperar), 15000);
+  function repararBoton() {
+    const original = document.getElementById("guardarLogoNico");
+
+    if (!original || original.dataset.logoReparado === "1") return;
+
+    // Clonar el botón elimina el controlador antiguo que insertaba la fila.
+    const boton = original.cloneNode(true);
+    boton.dataset.logoReparado = "1";
+    original.replaceWith(boton);
+
+    boton.addEventListener("click", () => {
+      const archivo = document.getElementById("archivoLogoNico")?.files?.[0];
+      const estado = document.getElementById("estadoLogoNico");
+
+      if (estado) {
+        guardarLogoCorregido(boton, estado, archivo);
+      }
+    });
+  }
+
+  function iniciarReparacion() {
+    repararBoton();
+
+    if (observador) return;
+
+    observador = new MutationObserver(repararBoton);
+    observador.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      iniciarReparacion,
+      { once: true }
+    );
+  } else {
+    iniciarReparacion();
+  }
 })();
 </script>
 </body>
 </html>
 
-
-
-</body>
-</html>
