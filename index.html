@@ -1422,6 +1422,310 @@ cargarCatalogo();
   });
 })();
 </script>
+
+  
+<script>
+/* =========================================================
+   LO DE NICO — REPARACIÓN DEL ADMINISTRADOR DE PRODUCTOS
+   Añade editar y eliminar sin perder mostrar/ocultar.
+   ========================================================= */
+(function () {
+  "use strict";
+
+  let productoEnEdicion = null;
+
+  function adminActivo() {
+    return typeof db !== "undefined" && db &&
+           typeof usuarioAdmin !== "undefined" && usuarioAdmin;
+  }
+
+  window.eliminarProductoNico = async function (id) {
+    if (!adminActivo()) {
+      alert("Iniciá sesión como administrador.");
+      return;
+    }
+
+    if (!confirm(
+      "¿Querés eliminar definitivamente este producto? Esta acción no se puede deshacer."
+    )) return;
+
+    try {
+      const { error } = await db
+        .from("products")
+        .delete()
+        .eq("id", id);
+
+      if (error) {
+        console.error("Error eliminando producto:", error);
+        alert(
+          "No se pudo eliminar el producto. Puede estar vinculado a un pedido o faltar permisos en Supabase."
+        );
+        return;
+      }
+
+      if (typeof carrito !== "undefined") {
+        delete carrito[String(id)];
+      }
+
+      alert("Producto eliminado.");
+      await cargarCatalogo();
+      await listarProductosAdmin();
+    } catch (error) {
+      console.error(error);
+      alert("Ocurrió un error al eliminar el producto.");
+    }
+  };
+
+  window.editarProductoNico = async function (id) {
+    if (!adminActivo()) {
+      alert("Iniciá sesión como administrador.");
+      return;
+    }
+
+    const { data: producto, error } = await db
+      .from("products")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !producto) {
+      console.error(error);
+      alert("No se pudo cargar el producto para editarlo.");
+      return;
+    }
+
+    productoEnEdicion = producto.id;
+    await formularioProductoNicoReparado(producto);
+  };
+
+  async function formularioProductoNicoReparado(producto) {
+    const zona = document.getElementById("formNuevoProducto");
+    if (!zona || !adminActivo()) return;
+
+    const { data: cats, error } = await db
+      .from("categories")
+      .select("*")
+      .order("sort_order");
+
+    if (error) {
+      alert("No se pudieron cargar las categorías.");
+      return;
+    }
+
+    zona.innerHTML = `
+      <form id="nuevoProducto" class="panel" style="margin-top:12px">
+        <h3>${producto ? "✏️ Editar producto" : "➕ Nuevo producto"}</h3>
+
+        <label for="npNombre">Nombre</label>
+        <input id="npNombre" required maxlength="140">
+
+        <label for="npCategoria">Categoría</label>
+        <select id="npCategoria" required>
+          ${(cats || []).map(c => `
+            <option value="${Number(c.id)}">
+              ${escapar(c.name)}
+            </option>
+          `).join("")}
+        </select>
+
+        <label for="npDescripcion">Descripción</label>
+        <textarea id="npDescripcion" rows="2"></textarea>
+
+        <label for="npPrecio">Precio en pesos</label>
+        <input id="npPrecio" type="number" min="0" step="0.01" required>
+
+        <label for="npUnidad">Unidad (kg, bandeja, unidad…)</label>
+        <input id="npUnidad" required>
+
+        <label for="npStock">Stock</label>
+        <input id="npStock" type="number" min="0" step="0.01" required>
+
+        <label for="npImagen">URL de fotografía</label>
+        <input id="npImagen" type="url" placeholder="https://...">
+
+        <button type="submit" class="principal">
+          ${producto ? "Guardar cambios" : "Guardar producto"}
+        </button>
+        <button type="button" id="cancelarEdicionNico">
+          Cancelar
+        </button>
+        <div id="npResultado" aria-live="polite"></div>
+      </form>
+    `;
+
+    const campo = id => document.getElementById(id);
+
+    if (producto) {
+      campo("npNombre").value = producto.name || "";
+      campo("npCategoria").value = String(producto.category_id || "");
+      campo("npDescripcion").value = producto.description || "";
+      campo("npPrecio").value = producto.price ?? 0;
+      campo("npUnidad").value = producto.unit || "kg";
+      campo("npStock").value = producto.stock ?? 0;
+      campo("npImagen").value = producto.image_url || "";
+    } else {
+      campo("npUnidad").value = "kg";
+      campo("npStock").value = "0";
+    }
+
+    campo("cancelarEdicionNico").onclick = () => {
+      productoEnEdicion = null;
+      zona.innerHTML = "";
+    };
+
+    campo("nuevoProducto").onsubmit = async function (event) {
+      event.preventDefault();
+
+      if (!adminActivo()) {
+        campo("npResultado").textContent =
+          "La sesión de administrador no está activa.";
+        return;
+      }
+
+      const precio = Number(campo("npPrecio").value);
+      const stock = Number(campo("npStock").value);
+
+      if (!Number.isFinite(precio) || precio < 0 ||
+          !Number.isFinite(stock) || stock < 0) {
+        campo("npResultado").textContent =
+          "Revisá el precio y el stock.";
+        return;
+      }
+
+      const fila = {
+        name: campo("npNombre").value.trim(),
+        category_id: Number(campo("npCategoria").value),
+        description: campo("npDescripcion").value.trim(),
+        price: precio,
+        unit: campo("npUnidad").value.trim(),
+        stock,
+        image_url: campo("npImagen").value.trim() || null
+      };
+
+      if (!fila.name || !fila.category_id || !fila.unit) {
+        campo("npResultado").textContent =
+          "Completá el nombre, la categoría y la unidad.";
+        return;
+      }
+
+      const boton = this.querySelector('[type="submit"]');
+      boton.disabled = true;
+      boton.textContent = "Guardando…";
+
+      try {
+        let resultado;
+
+        if (productoEnEdicion !== null) {
+          fila.updated_at = new Date().toISOString();
+
+          resultado = await db
+            .from("products")
+            .update(fila)
+            .eq("id", productoEnEdicion);
+        } else {
+          fila.active = true;
+          fila.featured = false;
+
+          resultado = await db
+            .from("products")
+            .insert(fila);
+        }
+
+        if (resultado.error) throw resultado.error;
+
+        alert(
+          productoEnEdicion !== null
+            ? "Cambios guardados correctamente."
+            : "Producto agregado correctamente."
+        );
+
+        productoEnEdicion = null;
+        zona.innerHTML = "";
+
+        await cargarCatalogo();
+        await cargarPanelAdmin();
+
+      } catch (error) {
+        console.error("Error guardando producto:", error);
+        campo("npResultado").textContent =
+          "No se pudo guardar. Revisá los permisos y los datos de Supabase.";
+      } finally {
+        if (boton.isConnected) boton.disabled = false;
+      }
+    };
+  }
+
+  const listarOriginal = window.listarProductosAdmin;
+
+  window.listarProductosAdmin = async function () {
+    if (!adminActivo()) return;
+
+    const zona = document.getElementById("listaAdminProductos");
+    if (!zona) return;
+
+    const { data, error } = await db
+      .from("products")
+      .select("*")
+      .order("name");
+
+    if (error) {
+      console.error(error);
+      zona.textContent = "No se pudieron cargar los productos.";
+      return;
+    }
+
+    zona.innerHTML = `
+      <div style="overflow:auto">
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Precio</th>
+              <th>Stock</th>
+              <th>Visible</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(data || []).map(p => `
+              <tr>
+                <td>${escapar(p.name)}</td>
+                <td>${dinero(p.price)}</td>
+                <td>${Number(p.stock) || 0}</td>
+                <td>${p.active ? "Sí" : "No"}</td>
+                <td>
+                  <button type="button"
+                    onclick="editarProductoNico(${Number(p.id)})">
+                    ✏️ Editar
+                  </button>
+                  <button type="button"
+                    onclick="cambiarVisibilidad(${Number(p.id)},${!p.active})">
+                    ${p.active ? "Ocultar" : "Mostrar"}
+                  </button>
+                  <button type="button"
+                    onclick="eliminarProductoNico(${Number(p.id)})">
+                    🗑️ Eliminar
+                  </button>
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
+  };
+
+  /* El botón Agregar producto abre el formulario reparado. */
+  const formularioOriginal = window.formularioProducto;
+
+  window.formularioProducto = async function () {
+    productoEnEdicion = null;
+    await formularioProductoNicoReparado(null);
+  };
+
+})();
+</script>
+
 </body>
 </html>
 
