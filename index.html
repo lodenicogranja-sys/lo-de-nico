@@ -2388,6 +2388,52 @@ if ("serviceWorker" in navigator) {
 </script>
 <!-- FIN UBICACION LO DE NICO -->
 
+  <script>
+/* LO DE NICO — DIAGNÓSTICO DEL ERROR DE RETIRO */
+(function () {
+  try {
+    if (typeof db === "undefined" || !db ||
+        typeof db.rpc !== "function") {
+      console.error(
+        "[Lo de Nico] No se pudo localizar el cliente de Supabase."
+      );
+      return;
+    }
+
+    if (db.__diagnosticoRetiro) return;
+
+    const rpcOriginal = db.rpc.bind(db);
+    db.rpc = async function (funcion, parametros, opciones) {
+      const resultado = await rpcOriginal(
+        funcion, parametros, opciones
+      );
+
+      if (funcion === "create_store_order" &&
+          resultado && resultado.error) {
+        const e = resultado.error;
+        const detalle = [
+          "Error al registrar el pedido:",
+          e.message,
+          e.details,
+          e.hint,
+          e.code
+        ].filter(Boolean).join("\n");
+
+        console.error("[Lo de Nico]", detalle);
+        alert(detalle);
+      }
+
+      return resultado;
+    };
+
+    db.__diagnosticoRetiro = true;
+    console.info("[Lo de Nico] Diagnóstico activado.");
+  } catch (e) {
+    console.error("[Lo de Nico] Error de diagnóstico:", e);
+  }
+})();
+</script>
+
   
 </body>
 </html>
