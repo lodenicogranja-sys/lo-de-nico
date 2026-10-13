@@ -1877,6 +1877,75 @@ if ("serviceWorker" in navigator) {
 </script>
 
 
+<style>
+  #rxInstalarAppNico {
+    position: fixed;
+    right: 16px;
+    bottom: 18px;
+    z-index: 99999;
+    border: 0;
+    border-radius: 14px;
+    padding: 14px 18px;
+    background: #24452f;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+    box-shadow: 0 5px 18px #0003;
+    cursor: pointer;
+  }
+
+  #rxInstalarAppNico[hidden] {
+    display: none !important;
+  }
+</style>
+
+<button id="rxInstalarAppNico" type="button" hidden>
+  📲 Instalar app
+</button>
+
+<script>
+(function () {
+  const boton = document.getElementById("rxInstalarAppNico");
+  if (!boton) return;
+
+  let instalacionPendiente = null;
+
+  function estaInstalada() {
+    return window.matchMedia("(display-mode: standalone)").matches ||
+      window.navigator.standalone === true;
+  }
+
+  function actualizarBoton() {
+    boton.hidden = estaInstalada() || !instalacionPendiente;
+  }
+
+  window.addEventListener("beforeinstallprompt", function (evento) {
+    evento.preventDefault();
+    instalacionPendiente = evento;
+    actualizarBoton();
+  });
+
+  window.addEventListener("appinstalled", function () {
+    instalacionPendiente = null;
+    actualizarBoton();
+  });
+
+  boton.addEventListener("click", async function () {
+    if (!instalacionPendiente) {
+      alert("Para instalar Lo de Nico, abrí la tienda en Chrome y entrá en el menú ⋮. Elegí «Instalar aplicación» o «Añadir a pantalla de inicio».");
+      return;
+    }
+
+    instalacionPendiente.prompt();
+    await instalacionPendiente.userChoice;
+    instalacionPendiente = null;
+    actualizarBoton();
+  });
+
+  actualizarBoton();
+})();
+</script>
+
 
 </body>
 </html>
