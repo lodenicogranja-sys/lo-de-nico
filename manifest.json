@@ -1,0 +1,28 @@
+
+{
+  "id": "./",
+  "name": "Lo de Nico",
+  "short_name": "Lo de Nico",
+  "description": "Tienda online de pollo, carne, cerdo y congelados.",
+  "lang": "es-AR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fffaf0",
+  "theme_color": "#24452f",
+  "icons": [
+    {
+      "src": "./icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "./icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "maskable"
+    }
+  ]
+}
