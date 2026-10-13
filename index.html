@@ -2132,6 +2132,123 @@ if ("serviceWorker" in navigator) {
   }
 </style>
 <!-- FIN FIRMA DE AUTORÍA ROXTHAL -->
+  
+
+<!-- CONTADOR PUBLICO DE VISITAS · LO DE NICO -->
+<style>
+  #lnd-contador-visitas {
+    margin: 0;
+    padding: 10px 8px;
+    text-align: center;
+    font-family: system-ui, sans-serif;
+    font-size: 11px;
+    color: #777d70;
+    background: #f5f2e9;
+    border-top: 1px solid #e4e1d7;
+  }
+
+  #lnd-contador-visitas strong {
+    color: #405b36;
+    font-weight: 750;
+  }
+</style>
+
+<script>
+(function () {
+  if (document.getElementById('lnd-contador-visitas')) return;
+
+  var contador = document.createElement('div');
+  contador.id = 'lnd-contador-visitas';
+  contador.innerHTML =
+    '👁️ Visitas a la tienda: <strong>…</strong>';
+
+  var firma = document.getElementById('lnd-firma-roxthal');
+
+  if (firma && firma.parentNode) {
+    firma.parentNode.insertBefore(contador, firma);
+  } else {
+    document.body.appendChild(contador);
+  }
+
+  var numero = contador.querySelector('strong');
+  var clave = 'lnd_visita_registrada_fecha';
+  var hoy = new Date().toISOString().slice(0, 10);
+
+  async function iniciarContador() {
+    var cliente = null;
+    var intentos = 0;
+
+    while (!cliente && intentos < 40) {
+      try {
+        if (typeof db !== 'undefined' && db) {
+          cliente = db;
+        }
+      } catch (e) {}
+
+      if (!cliente) {
+        await new Promise(function (resolve) {
+          setTimeout(resolve, 300);
+        });
+      }
+
+      intentos++;
+    }
+
+    if (!cliente) {
+      numero.textContent = 'No disponible';
+      return;
+    }
+
+    try {
+      var fechaGuardada = null;
+
+      try {
+        fechaGuardada = localStorage.getItem(clave);
+      } catch (e) {}
+
+      var respuesta;
+
+      if (fechaGuardada !== hoy) {
+        respuesta = await cliente.rpc('register_store_visit');
+
+        if (!respuesta.error) {
+          try {
+            localStorage.setItem(clave, hoy);
+          } catch (e) {}
+        }
+      } else {
+        respuesta = await cliente
+          .from('store_visit_counter')
+          .select('total_visits')
+          .eq('id', 1)
+          .single();
+
+        if (!respuesta.error) {
+          respuesta.data = respuesta.data.total_visits;
+        }
+      }
+
+      if (respuesta.error) throw respuesta.error;
+
+      var total = respuesta.data;
+
+      if (typeof total === 'object' && total !== null) {
+        total = total.register_store_visit;
+      }
+
+      numero.textContent =
+        Number(total).toLocaleString('es-AR');
+
+    } catch (error) {
+      numero.textContent = 'No disponible';
+      console.error('Error en contador de visitas:', error);
+    }
+  }
+
+  iniciarContador();
+})();
+</script>
+<!-- FIN CONTADOR DE VISITAS -->
 
   
 </body>
