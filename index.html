@@ -1862,6 +1862,20 @@ cargarCatalogo();
 })();
 </script>
 
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("./sw.js")
+      .then(function () {
+        console.log("Lo de Nico: aplicación preparada");
+      })
+      .catch(function (error) {
+        console.error("Error al registrar la aplicación:", error);
+      });
+  });
+}
+</script>
+
 
 
 </body>
