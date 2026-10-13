@@ -1947,6 +1947,156 @@ if ("serviceWorker" in navigator) {
 </script>
 
 
+<!-- LO DE NICO · PORTADA DE ENTRADA -->
+<style>
+  #lnd-portada-inicial {
+    position: fixed;
+    inset: 0;
+    z-index: 1000000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    box-sizing: border-box;
+    padding: 24px 18px;
+    background:
+      radial-gradient(ellipse at top, #fff9e9 0%, transparent 65%),
+      linear-gradient(160deg, #f5f0df 0%, #e3ead8 100%);
+    font-family: system-ui, -apple-system, sans-serif;
+    text-align: center;
+  }
+
+  #lnd-portada-inicial * {
+    box-sizing: border-box;
+  }
+
+  #lnd-portada-inicial .lnd-portada-contenido {
+    width: 100%;
+    max-width: 440px;
+    margin: auto;
+    padding: 30px 22px;
+    border: 1px solid rgba(73, 91, 54, .15);
+    border-radius: 28px;
+    background: rgba(255, 255, 255, .82);
+    box-shadow: 0 18px 55px rgba(44, 58, 32, .13);
+  }
+
+  #lnd-portada-inicial .lnd-portada-logo {
+    display: block;
+    width: min(72vw, 270px);
+    height: min(72vw, 270px);
+    object-fit: contain;
+    margin: 0 auto 22px;
+    border-radius: 22px;
+  }
+
+  #lnd-portada-inicial .lnd-portada-nombre {
+    margin: 0;
+    color: #293d26;
+    font-size: clamp(36px, 9vw, 52px);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: -1.5px;
+  }
+
+  #lnd-portada-inicial .lnd-portada-subtitulo {
+    margin: 15px 0 26px;
+    color: #5a654e;
+    font-size: 15px;
+    font-weight: 650;
+    line-height: 1.7;
+  }
+
+  #lnd-portada-inicial .lnd-portada-entrar {
+    display: block;
+    width: 100%;
+    min-height: 58px;
+    padding: 16px 18px;
+    border: 0;
+    border-radius: 16px;
+    background: #344e2c;
+    color: #fff;
+    font-size: 17px;
+    font-weight: 850;
+    letter-spacing: .4px;
+    cursor: pointer;
+    box-shadow: 0 7px 18px rgba(52, 78, 44, .22);
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #lnd-portada-inicial .lnd-portada-entrar:active {
+    transform: scale(.98);
+  }
+
+  #lnd-portada-inicial .lnd-portada-pie {
+    margin: 20px 0 0;
+    color: #7b8373;
+    font-size: 12px;
+  }
+
+  @media (max-height: 620px) {
+    #lnd-portada-inicial .lnd-portada-contenido {
+      padding: 18px;
+    }
+
+    #lnd-portada-inicial .lnd-portada-logo {
+      width: 145px;
+      height: 145px;
+      margin-bottom: 14px;
+    }
+
+    #lnd-portada-inicial .lnd-portada-subtitulo {
+      margin: 10px 0 16px;
+    }
+  }
+</style>
+
+<section id="lnd-portada-inicial" aria-label="Bienvenido a Lo de Nico">
+  <div class="lnd-portada-contenido">
+    <img
+      class="lnd-portada-logo"
+      src="./icon-512.webp"
+      alt="Lo de Nico"
+      onerror="this.style.display='none'"
+    >
+
+    <h1 class="lnd-portada-nombre">Lo de Nico</h1>
+
+    <p class="lnd-portada-subtitulo">
+      Tu tienda de confianza<br>
+      🍗 Pollo · 🥩 Carne · 🐷 Cerdo<br>
+      🧊 Congelados
+    </p>
+
+    <button
+      type="button"
+      class="lnd-portada-entrar"
+      id="lnd-portada-boton-entrar"
+    >
+      🛒 ENTRAR A LA TIENDA
+    </button>
+
+    <p class="lnd-portada-pie">
+      Calidad y sabor para tu mesa
+    </p>
+  </div>
+</section>
+
+<script>
+(function () {
+  var portada = document.getElementById('lnd-portada-inicial');
+  var boton = document.getElementById('lnd-portada-boton-entrar');
+
+  if (!portada || !boton) return;
+
+  boton.addEventListener('click', function () {
+    portada.style.display = 'none';
+    document.body.style.overflow = '';
+  });
+})();
+</script>
+<!-- FIN PORTADA LO DE NICO -->
+
 </body>
 </html>
 
