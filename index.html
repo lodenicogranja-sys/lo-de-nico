@@ -2433,7 +2433,82 @@ if ("serviceWorker" in navigator) {
   }
 })();
 </script>
+  
+<!-- INICIO: REDES SOCIALES LO DE NICO -->
+<style>
+  #lnd-redes-sociales {
+    margin: 16px auto;
+    max-width: 1068px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #e2e6db;
+    border-radius: 16px;
+    color: #203127;
+    text-align: center;
+    box-sizing: border-box;
+  }
 
+  #lnd-redes-sociales h2 {
+    margin: 0 0 10px;
+    color: #173d2c;
+    font-size: 24px;
+  }
+
+  #lnd-redes-sociales p {
+    margin: 0 0 16px;
+    line-height: 1.5;
+  }
+
+  #lnd-redes-sociales .lnd-tiktok-btn {
+    display: inline-block;
+    padding: 13px 20px;
+    border-radius: 10px;
+    background: #173d2c;
+    color: #fff;
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+  #lnd-redes-sociales .lnd-tiktok-btn:hover {
+    background: #24563e;
+  }
+</style>
+
+<script>
+(function () {
+  if (document.getElementById('lnd-redes-sociales')) return;
+
+  var contacto = document.querySelector(
+    'a[href="mailto:lodenicogranja@gmail.com"]'
+  );
+
+  if (!contacto) {
+    console.warn('Lo de Nico: no se encontró la sección de contacto.');
+    return;
+  }
+
+  var seccionContacto = contacto.closest('section');
+
+  if (!seccionContacto) return;
+
+  var redes = document.createElement('section');
+  redes.id = 'lnd-redes-sociales';
+  redes.setAttribute('aria-label', 'Redes sociales');
+  redes.innerHTML = `
+    <h2>📱 Redes sociales</h2>
+    <p>Seguinos en TikTok y descubrí las novedades de Granja Lo de Nico.</p>
+    <a class="lnd-tiktok-btn"
+       href="https://www.tiktok.com/@granjalodenico?_r=1&_t=ZS-9AWlKQbuQSK"
+       target="_blank"
+       rel="noopener noreferrer">
+       🎵 Visitar nuestro TikTok
+    </a>
+  `;
+
+  seccionContacto.insertAdjacentElement('afterend', redes);
+})();
+</script>
+<!-- FIN: REDES SOCIALES LO DE NICO -->
   
 </body>
 </html>
