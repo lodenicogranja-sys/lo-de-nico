@@ -2509,6 +2509,491 @@ if ("serviceWorker" in navigator) {
 })();
 </script>
 <!-- FIN: REDES SOCIALES LO DE NICO -->
+  <!-- INICIO CARTELERA SMART TV - LO DE NICO -->
+<style>
+  #nico-tv-admin {
+    margin: 14px 0;
+    padding: 14px;
+    border: 1px solid #d9ed8b;
+    border-radius: 12px;
+    background: #173d2c;
+    color: #fff;
+  }
+
+  #nico-tv-admin button {
+    width: 100%;
+    padding: 14px;
+    border: 0;
+    border-radius: 9px;
+    background: #d9ed8b;
+    color: #173d2c;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  #nico-tv-admin p {
+    margin: 8px 0 0;
+    font-size: 13px;
+  }
+
+  #nico-tv-pantalla {
+    position: fixed;
+    inset: 0;
+    z-index: 2147483000;
+    display: none;
+    background: #10271d;
+    color: #fff;
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+  }
+
+  #nico-tv-pantalla.activa {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #nico-tv-cabecera {
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    background: #173d2c;
+    border-bottom: 3px solid #d9ed8b;
+  }
+
+  #nico-tv-marca {
+    font-size: clamp(22px, 3vw, 42px);
+    font-weight: 900;
+  }
+
+  #nico-tv-cerrar {
+    border: 1px solid #d9ed8b;
+    border-radius: 8px;
+    padding: 10px 15px;
+    background: transparent;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  #nico-tv-producto {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 3vw;
+    align-items: center;
+    padding: 3vh 5vw;
+  }
+
+  #nico-tv-foto-contenedor {
+    height: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #nico-tv-foto {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 18px;
+  }
+
+  #nico-tv-sin-foto {
+    display: none;
+    text-align: center;
+    font-size: clamp(22px, 3vw, 40px);
+    color: #d9ed8b;
+  }
+
+  #nico-tv-datos {
+    text-align: center;
+  }
+
+  #nico-tv-nombre {
+    margin: 0 0 18px;
+    font-size: clamp(30px, 5vw, 76px);
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+
+  #nico-tv-descripcion {
+    margin: 0 0 20px;
+    font-size: clamp(16px, 2vw, 26px);
+    color: #e4eadf;
+  }
+
+  #nico-tv-precio {
+    color: #d9ed8b;
+    font-size: clamp(38px, 6vw, 88px);
+    font-weight: 900;
+    line-height: 1.1;
+  }
+
+  #nico-tv-unidad {
+    margin-top: 10px;
+    font-size: clamp(17px, 2vw, 28px);
+  }
+
+  #nico-tv-pie {
+    padding: 12px 20px;
+    background: #0b1b13;
+    text-align: center;
+    color: #d9ed8b;
+    font-size: clamp(13px, 1.6vw, 21px);
+  }
+
+  #nico-tv-progreso {
+    height: 5px;
+    width: 0;
+    background: #d9ed8b;
+  }
+
+  #nico-tv-controles {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: #0b1b13;
+  }
+
+  #nico-tv-controles button {
+    padding: 10px 18px;
+    border: 1px solid #d9ed8b;
+    border-radius: 8px;
+    background: #173d2c;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 700;
+  }
+
+  #nico-tv-contador {
+    min-width: 90px;
+    text-align: center;
+  }
+
+  @media (max-width: 700px) {
+    #nico-tv-producto {
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr auto;
+      gap: 12px;
+      padding: 12px;
+    }
+
+    #nico-tv-foto-contenedor {
+      min-height: 0;
+    }
+
+    #nico-tv-nombre {
+      margin-bottom: 8px;
+    }
+
+    #nico-tv-descripcion {
+      margin-bottom: 8px;
+    }
+
+    #nico-tv-cabecera {
+      padding: 10px 12px;
+    }
+  }
+</style>
+
+<div id="nico-tv-pantalla" aria-label="Cartelera de productos">
+  <div id="nico-tv-cabecera">
+    <div id="nico-tv-marca">🟢 LO DE NICO</div>
+    <button id="nico-tv-cerrar" type="button">✕ Cerrar cartelera</button>
+  </div>
+
+  <div id="nico-tv-progreso"></div>
+
+  <div id="nico-tv-producto">
+    <div id="nico-tv-foto-contenedor">
+      <img id="nico-tv-foto" alt="Foto del producto">
+      <div id="nico-tv-sin-foto">LO DE NICO<br>Producto sin fotografía</div>
+    </div>
+
+    <div id="nico-tv-datos">
+      <h1 id="nico-tv-nombre">Cargando productos…</h1>
+      <p id="nico-tv-descripcion"></p>
+      <div id="nico-tv-precio"></div>
+      <div id="nico-tv-unidad"></div>
+    </div>
+  </div>
+
+  <div id="nico-tv-pie">
+    Calidad y sabor para tu mesa · Consultá nuestros productos
+  </div>
+
+  <div id="nico-tv-controles">
+    <button id="nico-tv-anterior" type="button">◀ Anterior</button>
+    <span id="nico-tv-contador">0 / 0</span>
+    <button id="nico-tv-pausa" type="button">⏸ Pausar</button>
+    <button id="nico-tv-siguiente" type="button">Siguiente ▶</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  if (window.__nicoCarteleraInstalada) return;
+  window.__nicoCarteleraInstalada = true;
+
+  var intervalo = null;
+  var indice = 0;
+  var productosTV = [];
+  var pausada = false;
+  var duracion = 7000;
+  var inicioTiempo = 0;
+  var tiempoRestante = duracion;
+  var temporizadorProgreso = null;
+
+  function elemento(id) {
+    return document.getElementById(id);
+  }
+
+  function escaparHTML(valor) {
+    return String(valor == null ? "" : valor).replace(/[&<>"']/g, function (c) {
+      return {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+      }[c];
+    });
+  }
+
+  function dinero(valor) {
+    var numero = Number(valor);
+    if (!Number.isFinite(numero)) return "Consultar precio";
+
+    return numero.toLocaleString("es-AR", {
+      style: "currency",
+      currency: "ARS",
+      maximumFractionDigits: 2
+    });
+  }
+
+  function detenerTemporizadores() {
+    if (intervalo) clearTimeout(intervalo);
+    if (temporizadorProgreso) clearInterval(temporizadorProgreso);
+    intervalo = null;
+    temporizadorProgreso = null;
+  }
+
+  function actualizarProgreso() {
+    var barra = elemento("nico-tv-progreso");
+    if (!barra) return;
+
+    var transcurrido = duracion - tiempoRestante;
+    if (!pausada && inicioTiempo) {
+      transcurrido += Date.now() - inicioTiempo;
+    }
+
+    var porcentaje = Math.min(100, Math.max(0, transcurrido / duracion * 100));
+    barra.style.width = porcentaje + "%";
+  }
+
+  function programarSiguiente(ms) {
+    detenerTemporizadores();
+
+    if (pausada || productosTV.length < 2) return;
+
+    tiempoRestante = ms;
+    inicioTiempo = Date.now();
+
+    temporizadorProgreso = setInterval(actualizarProgreso, 100);
+
+    intervalo = setTimeout(function () {
+      indice = (indice + 1) % productosTV.length;
+      mostrarProducto();
+      programarSiguiente(duracion);
+    }, ms);
+  }
+
+  function mostrarProducto() {
+    if (!productosTV.length) return;
+
+    var p = productosTV[indice];
+    var foto = elemento("nico-tv-foto");
+    var sinFoto = elemento("nico-tv-sin-foto");
+    var url = String(p.image_url || "").trim();
+
+    elemento("nico-tv-nombre").textContent = p.name || "Producto";
+    elemento("nico-tv-descripcion").textContent = p.description || "";
+    elemento("nico-tv-precio").textContent = dinero(p.price);
+    elemento("nico-tv-unidad").textContent = p.unit ? "Por " + p.unit : "";
+    elemento("nico-tv-contador").textContent =
+      (indice + 1) + " / " + productosTV.length;
+
+    foto.style.display = "none";
+    sinFoto.style.display = "block";
+
+    if (url) {
+      foto.onload = function () {
+        foto.style.display = "block";
+        sinFoto.style.display = "none";
+      };
+
+      foto.onerror = function () {
+        foto.style.display = "none";
+        sinFoto.style.display = "block";
+      };
+
+      foto.src = url;
+    }
+
+    elemento("nico-tv-progreso").style.width = "0%";
+  }
+
+  async function cargarProductosTV() {
+    if (typeof db === "undefined" || !db ||
+        typeof db.from !== "function") {
+      throw new Error("No se encontró la conexión con Supabase.");
+    }
+
+    var resultado = await db
+      .from("products")
+      .select("id,name,description,price,unit,image_url,active")
+      .eq("active", true)
+      .order("name");
+
+    if (resultado.error) throw resultado.error;
+
+    productosTV = (resultado.data || []).filter(function (p) {
+      return p && p.name;
+    });
+
+    if (!productosTV.length) {
+      throw new Error("No hay productos activos para mostrar.");
+    }
+
+    indice = 0;
+    pausada = false;
+    tiempoRestante = duracion;
+    elemento("nico-tv-pausa").textContent = "⏸ Pausar";
+    mostrarProducto();
+    programarSiguiente(duracion);
+  }
+
+  async function abrirCartelera() {
+    if (typeof usuarioAdmin === "undefined" || !usuarioAdmin) {
+      alert("Iniciá sesión como administrador para abrir la cartelera.");
+      return;
+    }
+
+    elemento("nico-tv-pantalla").classList.add("activa");
+    document.body.style.overflow = "hidden";
+    elemento("nico-tv-nombre").textContent = "Cargando productos…";
+
+    try {
+      await cargarProductosTV();
+
+      try {
+        if (elemento("nico-tv-pantalla").requestFullscreen) {
+          await elemento("nico-tv-pantalla").requestFullscreen();
+        }
+      } catch (e) {
+        console.warn("Pantalla completa no disponible; la cartelera sigue abierta.", e);
+      }
+    } catch (error) {
+      console.error("[Lo de Nico] Cartelera TV:", error);
+      cerrarCartelera();
+      alert("No se pudo cargar la cartelera: " +
+        (error.message || "Error desconocido."));
+    }
+  }
+
+  function cerrarCartelera() {
+    detenerTemporizadores();
+    pausada = false;
+    elemento("nico-tv-pantalla").classList.remove("activa");
+    document.body.style.overflow = "";
+
+    if (document.fullscreenElement && document.exitFullscreen) {
+      document.exitFullscreen().catch(function () {});
+    }
+  }
+
+  function instalarBotonAdmin() {
+    var zona = elemento("contenidoAdmin");
+    if (!zona || elemento("nico-tv-admin")) return;
+
+    var panel = document.createElement("section");
+    panel.id = "nico-tv-admin";
+    panel.innerHTML =
+      '<strong>📺 Cartelera para Smart TV</strong>' +
+      '<p>Muestra los productos activos con su foto y precio en un bucle automático de 7 segundos.</p>' +
+      '<button type="button" id="nico-tv-abrir">▶ Abrir cartelera de productos</button>';
+
+    zona.prepend(panel);
+    elemento("nico-tv-abrir").addEventListener("click", abrirCartelera);
+  }
+
+  function vigilarAdmin() {
+    instalarBotonAdmin();
+  }
+
+  elemento("nico-tv-cerrar").addEventListener("click", cerrarCartelera);
+
+  elemento("nico-tv-anterior").addEventListener("click", function () {
+    if (!productosTV.length) return;
+    indice = (indice - 1 + productosTV.length) % productosTV.length;
+    mostrarProducto();
+    if (!pausada) programarSiguiente(duracion);
+  });
+
+  elemento("nico-tv-siguiente").addEventListener("click", function () {
+    if (!productosTV.length) return;
+    indice = (indice + 1) % productosTV.length;
+    mostrarProducto();
+    if (!pausada) programarSiguiente(duracion);
+  });
+
+  elemento("nico-tv-pausa").addEventListener("click", function () {
+    pausada = !pausada;
+
+    if (pausada) {
+      if (intervalo) {
+        tiempoRestante = Math.max(0, tiempoRestante - (Date.now() - inicioTiempo));
+      }
+      detenerTemporizadores();
+      elemento("nico-tv-pausa").textContent = "▶ Reanudar";
+      actualizarProgreso();
+    } else {
+      elemento("nico-tv-pausa").textContent = "⏸ Pausar";
+      programarSiguiente(tiempoRestante || duracion);
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && elemento("nico-tv-pantalla").classList.contains("activa")) {
+      cerrarCartelera();
+    }
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", vigilarAdmin);
+  } else {
+    vigilarAdmin();
+  }
+
+  new MutationObserver(vigilarAdmin).observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+})();
+</script>
+<!-- FIN CARTELERA SMART TV - LO DE NICO -->
   
 </body>
 </html>
