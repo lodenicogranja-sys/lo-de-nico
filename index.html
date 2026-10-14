@@ -2995,6 +2995,186 @@ if ("serviceWorker" in navigator) {
 </script>
 <!-- FIN CARTELERA SMART TV - LO DE NICO -->
   
+<!-- INICIO ADAPTACION ORIENTACION LO DE NICO -->
+<style>
+/* Catálogo adaptable */
+main {
+  width: 100%;
+}
+
+#listaProductos.productos {
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(min(100%, 230px), 1fr)
+  );
+  align-items: stretch;
+}
+
+#listaProductos .producto {
+  min-width: 0;
+}
+
+#listaProductos .foto {
+  width: 100%;
+  height: clamp(130px, 22vh, 240px);
+  object-fit: contain;
+}
+
+#listaProductos .producto h3,
+#listaProductos .producto p {
+  overflow-wrap: anywhere;
+}
+
+/* Móvil vertical */
+@media screen and (orientation: portrait) and (max-width: 520px) {
+  main {
+    padding: 16px 12px;
+  }
+
+  #listaProductos.productos {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  #listaProductos .producto {
+    display: grid;
+    grid-template-columns: minmax(110px, 38%) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 12px;
+  }
+
+  #listaProductos .foto {
+    grid-row: 1 / span 5;
+    height: clamp(125px, 19vh, 190px);
+  }
+
+  #listaProductos .producto h3 {
+    margin-top: 2px;
+  }
+
+  #listaProductos .precio {
+    font-size: 18px;
+    margin: 6px 0 10px;
+  }
+
+  #listaProductos .producto button {
+    grid-column: 2;
+  }
+}
+
+/* Pantallas apaisadas: TV, monitor y pantallas grandes */
+@media screen and (orientation: landscape) and (min-width: 701px) {
+  main {
+    max-width: none;
+    padding: 2.2vh 3vw;
+  }
+
+  #listaProductos.productos {
+    grid-template-columns: repeat(
+      auto-fit,
+      minmax(230px, 1fr)
+    );
+    gap: clamp(12px, 1.4vw, 24px);
+  }
+
+  #listaProductos .foto {
+    height: clamp(145px, 24vh, 280px);
+  }
+}
+
+/* Cartelera de Smart TV */
+#nico-tv-pantalla {
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+}
+
+#nico-tv-producto {
+  min-width: 0;
+  min-height: 0;
+}
+
+#nico-tv-foto-contenedor {
+  min-width: 0;
+  min-height: 0;
+}
+
+#nico-tv-foto {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+#nico-tv-datos {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+#nico-tv-controles {
+  flex-wrap: wrap;
+}
+
+/* Cartelera apaisada */
+@media screen and (orientation: landscape) and (min-width: 701px) {
+  #nico-tv-producto {
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    align-items: center;
+  }
+
+  #nico-tv-foto-contenedor {
+    height: 100%;
+  }
+
+  #nico-tv-foto {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+}
+
+/* Cartelera vertical */
+@media screen and (orientation: portrait) {
+  #nico-tv-pantalla {
+    overflow-y: auto;
+  }
+
+  #nico-tv-producto {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 42vh) auto;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  #nico-tv-foto-contenedor {
+    height: 42vh;
+    min-height: 0;
+  }
+
+  #nico-tv-foto {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  #nico-tv-datos {
+    text-align: center;
+  }
+
+  #nico-tv-controles {
+    gap: 7px;
+    padding: 8px;
+  }
+
+  #nico-tv-controles button {
+    padding: 9px 11px;
+  }
+}
+</style>
+<!-- FIN ADAPTACION ORIENTACION LO DE NICO -->
+
+  
 </body>
 </html>
 
